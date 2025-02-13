@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>BayesChange Tutorial</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">
+
+div.csl-bib-body { }
+div.csl-entry {
+clear: both;
+margin-bottom: 0em;
+}
+.hanging div.csl-entry {
+margin-left:2em;
+text-indent:-2em;
+}
+div.csl-left-margin {
+min-width:2em;
+float:left;
+}
+div.csl-right-inline {
+margin-left:2em;
+padding-left:1em;
+}
+div.csl-indent {
+margin-left: 2em;
+}
+</style>
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">BayesChange Tutorial</h1>
+
+
+
+<p>Here we provide a brief tutorial of the <code>BayesChange</code>
+package. The <code>BayesChange</code> package contains functions that
+perform change points detection on univariate and multivariate time
+series and functions that perform clustering of time series and survival
+functions with common change points. Here we briefly show how to
+implement the main functions.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(BayesChange)</span></code></pre></div>
+<div id="detecting-change-points-on-time-series" class="section level2">
+<h2>Detecting change points on time series</h2>
+<p>Two functions of the package, <code>detect_cp_uni</code> and
+<code>detect_cp_multi</code>, provide respectively a method for
+detecting change points on univariate and multivariate time series. The
+function <code>detect_cp_uni</code> is based on the work <span class="citation">Martínez and Mena (2014)</span> and the function
+<code>detect_cp_multi</code> on the work <span class="citation">Corradin, Danese, and Ongaro (2022)</span>.</p>
+<p>In order to use the function <code>detect_cp_uni</code> we need a
+vector of observations. For example we can create a vector of 100
+observations where the first 50 observations are sampled from a normal
+distribution with mean 0 and variance 0.1 and the other 50 observations
+still from a normal distribution with mean 0 but variance 0.25.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>data_uni <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">0</span>,<span class="fl">0.1</span>), <span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">1</span>,<span class="fl">0.25</span>)))</span></code></pre></div>
+<p>Now we can run the function <code>detect_cp_uni</code>, as arguments
+of the function we need to specify the number of iterations, the
+probability <code>q</code> of performing a split at each step, the
+autoregressive coefficient <code>phi</code> for the likelihood of the
+data and the parameters <code>a</code>, <code>b</code>, <code>c</code>
+for the priors.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">detect_cp_uni</span>(<span class="at">data =</span> data_uni,                             </span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>                            <span class="at">n_iterations =</span> <span class="dv">2500</span>,</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>                            <span class="at">q =</span> <span class="fl">0.25</span>,</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>                            <span class="at">phi =</span> <span class="fl">0.1</span>, <span class="at">a =</span> <span class="dv">1</span>, <span class="at">b =</span> <span class="dv">1</span>, <span class="at">c =</span> <span class="fl">0.1</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; Completed:   250/2500 - in 0.032 sec</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; Completed:   500/2500 - in 0.06 sec</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; Completed:   750/2500 - in 0.099 sec</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; Completed:   1000/2500 - in 0.137 sec</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; Completed:   1250/2500 - in 0.173 sec</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; Completed:   1500/2500 - in 0.22 sec</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt; Completed:   1750/2500 - in 0.256 sec</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt; Completed:   2000/2500 - in 0.288 sec</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt; Completed:   2250/2500 - in 0.32 sec</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt; Completed:   2500/2500 - in 0.403 sec</span></span></code></pre></div>
+<p>In order to get a point estimate of the final partition we can use
+the function <code>get_clust_VI</code> that choose as final estimate for
+the partition the visited partition that minimizes the Variation of
+Information loss function.</p>
+<p>The function correctly detect a change point at time 50.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">table</span>(<span class="fu">get_clust_VI</span>(out<span class="sc">$</span>order[<span class="dv">500</span><span class="sc">:</span><span class="dv">2500</span>,]))</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt;  0  1 </span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; 50 50</span></span></code></pre></div>
+<p><em>Remark</em>: the function <code>get_clust_VI</code> has been
+included inside the package in order to give the user an easy way to
+obtain a final estimate of the partition. In literature there are many
+other methods based on other loss functions and other algorithms that
+estimate a final partition from a sequence of visited partition by an
+MCMC algorithm. See for example <span class="citation">David B. Dahl and
+Müller (2022)</span></p>
+<p>Function <code>detect_cp_multi</code> work similarly to its
+univariate counterpart. Data must be a matrix where each row is a time
+series.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>data_multi <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="cn">NA</span>, <span class="at">nrow =</span> <span class="dv">3</span>, <span class="at">ncol =</span> <span class="dv">100</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>data_multi[<span class="dv">1</span>,] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">0</span>,<span class="fl">0.100</span>), <span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">1</span>,<span class="fl">0.250</span>)))</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>data_multi[<span class="dv">2</span>,] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">0</span>,<span class="fl">0.125</span>), <span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">1</span>,<span class="fl">0.225</span>)))</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>data_multi[<span class="dv">3</span>,] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">0</span>,<span class="fl">0.175</span>), <span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">1</span>,<span class="fl">0.280</span>)))</span></code></pre></div>
+<p>Arguments <code>k_0</code>, <code>nu_0</code>, <code>phi_0</code>,
+<code>m_0</code>, <code>par_theta_c</code>, <code>par_theta_d</code> and
+<code>prior_var_gamma</code> correspond to the parameters of the prior
+distributions for the multivariate likelihood.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">detect_cp_multi</span>(<span class="at">data =</span> data_multi,</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>                              <span class="at">n_iterations =</span> <span class="dv">2500</span>,</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>                              <span class="at">q =</span> <span class="fl">0.25</span>, <span class="at">k_0 =</span> <span class="fl">0.25</span>, <span class="at">nu_0 =</span> <span class="dv">4</span>, <span class="at">phi_0 =</span> <span class="fu">diag</span>(<span class="dv">1</span>,<span class="dv">3</span>,<span class="dv">3</span>), <span class="at">m_0 =</span> <span class="fu">rep</span>(<span class="dv">0</span>,<span class="dv">3</span>),</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>                              <span class="at">par_theta_c =</span> <span class="dv">2</span>, <span class="at">par_theta_d =</span> <span class="fl">0.2</span>, <span class="at">prior_var_gamma =</span> <span class="fl">0.1</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt; Completed:   250/2500 - in 0.09 sec</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt; Completed:   500/2500 - in 0.142 sec</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt; Completed:   750/2500 - in 0.187 sec</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt; Completed:   1000/2500 - in 0.226 sec</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt; Completed:   1250/2500 - in 0.275 sec</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt; Completed:   1500/2500 - in 0.326 sec</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co">#&gt; Completed:   1750/2500 - in 0.409 sec</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co">#&gt; Completed:   2000/2500 - in 0.494 sec</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="co">#&gt; Completed:   2250/2500 - in 0.569 sec</span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co">#&gt; Completed:   2500/2500 - in 0.635 sec</span></span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="fu">table</span>(<span class="fu">get_clust_VI</span>(out<span class="sc">$</span>order[<span class="dv">500</span><span class="sc">:</span><span class="dv">2500</span>,]))</span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a><span class="co">#&gt;  0  1 </span></span>
+<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a><span class="co">#&gt; 50 50</span></span></code></pre></div>
+</div>
+<div id="cluster-time-series-with-common-change-points" class="section level2">
+<h2>Cluster time series with common change points</h2>
+<p><code>BayesChange</code> contains two functions,
+<code>clust_cp_uni</code> and <code>clust_cp_multi</code>, that cluster
+respectively univariate and multivariate time series with common change
+points. Details about this methods can be found in <span class="citation">Corradin et al. (2024)</span>.</p>
+<p>In <code>clust_cp_uni</code> data are a matrix where each row is a
+time series.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>data_mat <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="cn">NA</span>, <span class="at">nrow =</span> <span class="dv">5</span>, <span class="at">ncol =</span> <span class="dv">100</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>data_mat[<span class="dv">1</span>,] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">0</span>,<span class="fl">0.100</span>), <span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">1</span>,<span class="fl">0.250</span>)))</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>data_mat[<span class="dv">2</span>,] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">0</span>,<span class="fl">0.125</span>), <span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">1</span>,<span class="fl">0.225</span>)))</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>data_mat[<span class="dv">3</span>,] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">0</span>,<span class="fl">0.175</span>), <span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">1</span>,<span class="fl">0.280</span>)))</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>data_mat[<span class="dv">4</span>,] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">25</span>,<span class="dv">0</span>,<span class="fl">0.135</span>), <span class="fu">rnorm</span>(<span class="dv">75</span>,<span class="dv">1</span>,<span class="fl">0.225</span>)))</span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>data_mat[<span class="dv">5</span>,] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">25</span>,<span class="dv">0</span>,<span class="fl">0.155</span>), <span class="fu">rnorm</span>(<span class="dv">75</span>,<span class="dv">1</span>,<span class="fl">0.280</span>)))</span></code></pre></div>
+<p>Arguments that need to be specified in <code>clust_cp_uni</code> are
+the number of iterations <code>n_iterations</code>, the number of
+elements in the normalisation constant <code>B</code>, the
+split-and-merge step <code>L</code> performed when a new partition is
+proposed and the autoregressive coefficient <code>gamma</code> for the
+likelihood of the time series.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">clust_cp_uni</span>(<span class="at">data =</span> data_mat, <span class="at">n_iterations =</span> <span class="dv">2500</span>, <span class="at">B =</span> <span class="dv">1000</span>, <span class="at">L =</span> <span class="dv">1</span>, <span class="at">gamma =</span> <span class="fl">0.5</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  100/1000 - in 0.014 sec</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  200/1000 - in 0.024 sec</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  300/1000 - in 0.037 sec</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  400/1000 - in 0.048 sec</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  500/1000 - in 0.058 sec</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  600/1000 - in 0.068 sec</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  700/1000 - in 0.077 sec</span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  800/1000 - in 0.086 sec</span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  900/1000 - in 0.096 sec</span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  1000/1000 - in 0.104 sec</span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co">#&gt; ------ MAIN LOOP ------</span></span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="co">#&gt; Completed:   250/2500 - in 0.284 sec</span></span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="co">#&gt; Completed:   500/2500 - in 0.489 sec</span></span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="co">#&gt; Completed:   750/2500 - in 0.679 sec</span></span>
+<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a><span class="co">#&gt; Completed:   1000/2500 - in 0.873 sec</span></span>
+<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a><span class="co">#&gt; Completed:   1250/2500 - in 1.067 sec</span></span>
+<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a><span class="co">#&gt; Completed:   1500/2500 - in 1.257 sec</span></span>
+<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a><span class="co">#&gt; Completed:   1750/2500 - in 1.455 sec</span></span>
+<span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a><span class="co">#&gt; Completed:   2000/2500 - in 1.642 sec</span></span>
+<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a><span class="co">#&gt; Completed:   2250/2500 - in 1.842 sec</span></span>
+<span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a><span class="co">#&gt; Completed:   2500/2500 - in 2.09 sec</span></span>
+<span id="cb8-25"><a href="#cb8-25" tabindex="-1"></a></span>
+<span id="cb8-26"><a href="#cb8-26" tabindex="-1"></a><span class="fu">get_clust_VI</span>(out<span class="sc">$</span>clust[<span class="dv">500</span><span class="sc">:</span><span class="dv">2500</span>,])</span>
+<span id="cb8-27"><a href="#cb8-27" tabindex="-1"></a><span class="co">#&gt;      [,1]</span></span>
+<span id="cb8-28"><a href="#cb8-28" tabindex="-1"></a><span class="co">#&gt; [1,]    0</span></span>
+<span id="cb8-29"><a href="#cb8-29" tabindex="-1"></a><span class="co">#&gt; [2,]    0</span></span>
+<span id="cb8-30"><a href="#cb8-30" tabindex="-1"></a><span class="co">#&gt; [3,]    0</span></span>
+<span id="cb8-31"><a href="#cb8-31" tabindex="-1"></a><span class="co">#&gt; [4,]    1</span></span>
+<span id="cb8-32"><a href="#cb8-32" tabindex="-1"></a><span class="co">#&gt; [5,]    1</span></span></code></pre></div>
+<p>In <code>clust_cp_multi</code> data must be an array, where each
+element is a multivariate time series represented by a matrix. Each row
+of the matrix is a component of the time series.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>data_array <span class="ot">&lt;-</span> <span class="fu">array</span>(<span class="at">data =</span> <span class="cn">NA</span>, <span class="at">dim =</span> <span class="fu">c</span>(<span class="dv">3</span>,<span class="dv">100</span>,<span class="dv">5</span>))</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>data_array[<span class="dv">1</span>,,<span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">0</span>,<span class="fl">0.100</span>), <span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">1</span>,<span class="fl">0.250</span>)))</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>data_array[<span class="dv">2</span>,,<span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">0</span>,<span class="fl">0.100</span>), <span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">1</span>,<span class="fl">0.250</span>)))</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>data_array[<span class="dv">3</span>,,<span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">0</span>,<span class="fl">0.100</span>), <span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">1</span>,<span class="fl">0.250</span>)))</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>data_array[<span class="dv">1</span>,,<span class="dv">2</span>] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">0</span>,<span class="fl">0.100</span>), <span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">1</span>,<span class="fl">0.250</span>)))</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>data_array[<span class="dv">2</span>,,<span class="dv">2</span>] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">0</span>,<span class="fl">0.100</span>), <span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">1</span>,<span class="fl">0.250</span>)))</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>data_array[<span class="dv">3</span>,,<span class="dv">2</span>] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">0</span>,<span class="fl">0.100</span>), <span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">1</span>,<span class="fl">0.250</span>)))</span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a>data_array[<span class="dv">1</span>,,<span class="dv">3</span>] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">0</span>,<span class="fl">0.175</span>), <span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">1</span>,<span class="fl">0.280</span>)))</span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a>data_array[<span class="dv">2</span>,,<span class="dv">3</span>] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">0</span>,<span class="fl">0.175</span>), <span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">1</span>,<span class="fl">0.280</span>)))</span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a>data_array[<span class="dv">3</span>,,<span class="dv">3</span>] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">0</span>,<span class="fl">0.175</span>), <span class="fu">rnorm</span>(<span class="dv">50</span>,<span class="dv">1</span>,<span class="fl">0.280</span>)))</span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a>data_array[<span class="dv">1</span>,,<span class="dv">4</span>] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">25</span>,<span class="dv">0</span>,<span class="fl">0.135</span>), <span class="fu">rnorm</span>(<span class="dv">75</span>,<span class="dv">1</span>,<span class="fl">0.225</span>)))</span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a>data_array[<span class="dv">2</span>,,<span class="dv">4</span>] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">25</span>,<span class="dv">0</span>,<span class="fl">0.135</span>), <span class="fu">rnorm</span>(<span class="dv">75</span>,<span class="dv">1</span>,<span class="fl">0.225</span>)))</span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a>data_array[<span class="dv">3</span>,,<span class="dv">4</span>] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">25</span>,<span class="dv">0</span>,<span class="fl">0.135</span>), <span class="fu">rnorm</span>(<span class="dv">75</span>,<span class="dv">1</span>,<span class="fl">0.225</span>)))</span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a></span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a>data_array[<span class="dv">1</span>,,<span class="dv">5</span>] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">25</span>,<span class="dv">0</span>,<span class="fl">0.155</span>), <span class="fu">rnorm</span>(<span class="dv">75</span>,<span class="dv">1</span>,<span class="fl">0.280</span>)))</span>
+<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a>data_array[<span class="dv">2</span>,,<span class="dv">5</span>] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">25</span>,<span class="dv">0</span>,<span class="fl">0.155</span>), <span class="fu">rnorm</span>(<span class="dv">75</span>,<span class="dv">1</span>,<span class="fl">0.280</span>)))</span>
+<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a>data_array[<span class="dv">3</span>,,<span class="dv">5</span>] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">c</span>(<span class="fu">rnorm</span>(<span class="dv">25</span>,<span class="dv">0</span>,<span class="fl">0.155</span>), <span class="fu">rnorm</span>(<span class="dv">75</span>,<span class="dv">1</span>,<span class="fl">0.280</span>)))</span></code></pre></div>
+<p>Parameters for the algorithm are the same of
+<code>clust_cp_uni</code>, parameters of the multivariate likelihood
+correspond to those in <code>detect_cp_multi</code></p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">clust_cp_multi</span>(<span class="at">data =</span> data_array, <span class="at">n_iterations =</span> <span class="dv">2500</span>, <span class="at">B =</span> <span class="dv">1000</span>, <span class="at">L =</span> <span class="dv">1</span>,</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>                        <span class="at">gamma =</span> <span class="fl">0.1</span>, <span class="at">k_0 =</span> <span class="fl">0.25</span>, <span class="at">nu_0 =</span> <span class="dv">5</span>, <span class="at">phi_0 =</span> <span class="fu">diag</span>(<span class="fl">0.1</span>,<span class="dv">3</span>,<span class="dv">3</span>), <span class="at">m_0 =</span> <span class="fu">rep</span>(<span class="dv">0</span>,<span class="dv">3</span>))</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  100/1000 - in 0.012 sec</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  200/1000 - in 0.023 sec</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  300/1000 - in 0.044 sec</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  400/1000 - in 0.075 sec</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  500/1000 - in 0.104 sec</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  600/1000 - in 0.129 sec</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  700/1000 - in 0.145 sec</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  800/1000 - in 0.156 sec</span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  900/1000 - in 0.167 sec</span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  1000/1000 - in 0.18 sec</span></span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="co">#&gt; ------ MAIN LOOP ------</span></span>
+<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a><span class="co">#&gt; Completed:   250/2500 - in 0.235 sec</span></span>
+<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a><span class="co">#&gt; Completed:   500/2500 - in 0.486 sec</span></span>
+<span id="cb10-18"><a href="#cb10-18" tabindex="-1"></a><span class="co">#&gt; Completed:   750/2500 - in 0.735 sec</span></span>
+<span id="cb10-19"><a href="#cb10-19" tabindex="-1"></a><span class="co">#&gt; Completed:   1000/2500 - in 0.967 sec</span></span>
+<span id="cb10-20"><a href="#cb10-20" tabindex="-1"></a><span class="co">#&gt; Completed:   1250/2500 - in 1.245 sec</span></span>
+<span id="cb10-21"><a href="#cb10-21" tabindex="-1"></a><span class="co">#&gt; Completed:   1500/2500 - in 1.54 sec</span></span>
+<span id="cb10-22"><a href="#cb10-22" tabindex="-1"></a><span class="co">#&gt; Completed:   1750/2500 - in 1.826 sec</span></span>
+<span id="cb10-23"><a href="#cb10-23" tabindex="-1"></a><span class="co">#&gt; Completed:   2000/2500 - in 2.098 sec</span></span>
+<span id="cb10-24"><a href="#cb10-24" tabindex="-1"></a><span class="co">#&gt; Completed:   2250/2500 - in 2.365 sec</span></span>
+<span id="cb10-25"><a href="#cb10-25" tabindex="-1"></a><span class="co">#&gt; Completed:   2500/2500 - in 2.615 sec</span></span>
+<span id="cb10-26"><a href="#cb10-26" tabindex="-1"></a></span>
+<span id="cb10-27"><a href="#cb10-27" tabindex="-1"></a><span class="fu">get_clust_VI</span>(out<span class="sc">$</span>clust[<span class="dv">500</span><span class="sc">:</span><span class="dv">2000</span>,])</span>
+<span id="cb10-28"><a href="#cb10-28" tabindex="-1"></a><span class="co">#&gt;      [,1]</span></span>
+<span id="cb10-29"><a href="#cb10-29" tabindex="-1"></a><span class="co">#&gt; [1,]    0</span></span>
+<span id="cb10-30"><a href="#cb10-30" tabindex="-1"></a><span class="co">#&gt; [2,]    0</span></span>
+<span id="cb10-31"><a href="#cb10-31" tabindex="-1"></a><span class="co">#&gt; [3,]    0</span></span>
+<span id="cb10-32"><a href="#cb10-32" tabindex="-1"></a><span class="co">#&gt; [4,]    1</span></span>
+<span id="cb10-33"><a href="#cb10-33" tabindex="-1"></a><span class="co">#&gt; [5,]    1</span></span></code></pre></div>
+</div>
+<div id="cluster-survival-functions-with-common-change-points" class="section level2">
+<h2>Cluster survival functions with common change points</h2>
+<p>Functions <code>clust_cp_epi</code> provide a method for clustering
+survival functions with common change points. Also here details can be
+found in <span class="citation">Corradin et al. (2024)</span>.</p>
+<p>Data are a matrix where each row is the number of infected at each
+time. Inside this package is included the function
+<code>sim_epi_data</code> that simulates infection times.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>data_mat <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="cn">NA</span>, <span class="at">nrow =</span> <span class="dv">5</span>, <span class="at">ncol =</span> <span class="dv">50</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>betas <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="fu">c</span>(<span class="fu">rep</span>(<span class="fl">0.45</span>, <span class="dv">25</span>),<span class="fu">rep</span>(<span class="fl">0.14</span>,<span class="dv">25</span>)),</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>               <span class="fu">c</span>(<span class="fu">rep</span>(<span class="fl">0.55</span>, <span class="dv">25</span>),<span class="fu">rep</span>(<span class="fl">0.11</span>,<span class="dv">25</span>)),</span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>               <span class="fu">c</span>(<span class="fu">rep</span>(<span class="fl">0.50</span>, <span class="dv">25</span>),<span class="fu">rep</span>(<span class="fl">0.12</span>,<span class="dv">25</span>)),</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>               <span class="fu">c</span>(<span class="fu">rep</span>(<span class="fl">0.52</span>, <span class="dv">10</span>),<span class="fu">rep</span>(<span class="fl">0.15</span>,<span class="dv">40</span>)),</span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>               <span class="fu">c</span>(<span class="fu">rep</span>(<span class="fl">0.53</span>, <span class="dv">10</span>),<span class="fu">rep</span>(<span class="fl">0.13</span>,<span class="dv">40</span>)))</span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>  inf_times <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a>  <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>){</span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a></span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a>    inf_times[[i]] <span class="ot">&lt;-</span> <span class="fu">sim_epi_data</span>(<span class="at">S0 =</span> <span class="dv">10000</span>, <span class="at">I0 =</span> <span class="dv">10</span>, <span class="at">max_time =</span> <span class="dv">50</span>, <span class="at">beta_vec =</span> betas[[i]], <span class="at">gamma_0 =</span> <span class="dv">1</span><span class="sc">/</span><span class="dv">8</span>)</span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a></span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a>    vec <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">0</span>,<span class="dv">50</span>)</span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a>    <span class="fu">names</span>(vec) <span class="ot">&lt;-</span> <span class="fu">as.character</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">50</span>)</span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a></span>
+<span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a>    <span class="cf">for</span>(j <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">50</span>){</span>
+<span id="cb11-19"><a href="#cb11-19" tabindex="-1"></a>      <span class="cf">if</span>(<span class="fu">as.character</span>(j) <span class="sc">%in%</span> <span class="fu">names</span>(<span class="fu">table</span>(<span class="fu">floor</span>(inf_times[[i]])))){</span>
+<span id="cb11-20"><a href="#cb11-20" tabindex="-1"></a>      vec[j] <span class="ot">=</span> <span class="fu">table</span>(<span class="fu">floor</span>(inf_times[[i]]))[<span class="fu">which</span>(<span class="fu">names</span>(<span class="fu">table</span>(<span class="fu">floor</span>(inf_times[[i]]))) <span class="sc">==</span> j)]</span>
+<span id="cb11-21"><a href="#cb11-21" tabindex="-1"></a>      }</span>
+<span id="cb11-22"><a href="#cb11-22" tabindex="-1"></a>    }</span>
+<span id="cb11-23"><a href="#cb11-23" tabindex="-1"></a>    data_mat[i,] <span class="ot">&lt;-</span> vec</span>
+<span id="cb11-24"><a href="#cb11-24" tabindex="-1"></a>  }</span></code></pre></div>
+<p>In <code>clust_cp_epi</code> we need to specify, besides the usual
+parameters, the number of Monte Carlo replications <code>M</code> for
+the approximation of the integrated likelihood and the recovery rate
+<code>gamma</code>.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">clust_cp_epi</span>(<span class="at">data =</span> data_mat, <span class="at">n_iterations =</span> <span class="dv">2500</span>, <span class="at">M =</span> <span class="dv">250</span>, <span class="at">B =</span> <span class="dv">1000</span>, <span class="at">L =</span> <span class="dv">1</span>, <span class="at">q =</span> <span class="fl">0.1</span>, <span class="at">gamma =</span> <span class="dv">1</span><span class="sc">/</span><span class="dv">8</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a><span class="fu">get_clust_VI</span>(out<span class="sc">$</span>clust[<span class="dv">500</span><span class="sc">:</span><span class="dv">2500</span>,])</span></code></pre></div>
+<div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
+<div id="ref-corradin2024" class="csl-entry">
+Corradin, Riccardo, Luca Danese, Wasiur R. KhudaBukhsh, and Andrea
+Ongaro. 2024. <span>“Model-Based Clustering of Time-Dependent
+Observations with Common Structural Changes.”</span> <a href="https://arxiv.org/abs/2410.09552">https://arxiv.org/abs/2410.09552</a>.
+</div>
+<div id="ref-CORRADIN202226" class="csl-entry">
+Corradin, Riccardo, Luca Danese, and Andrea Ongaro. 2022.
+<span>“Bayesian Nonparametric Change Point Detection for Multivariate
+Time Series with Missing Observations.”</span> <em>International Journal
+of Approximate Reasoning</em> 143: 26–43. https://doi.org/<a href="https://doi.org/10.1016/j.ijar.2021.12.019">https://doi.org/10.1016/j.ijar.2021.12.019</a>.
+</div>
+<div id="ref-Dahl02102022" class="csl-entry">
+David B. Dahl, Devin J. Johnson, and Peter Müller. 2022. <span>“Search
+Algorithms and Loss Functions for Bayesian Clustering.”</span>
+<em>Journal of Computational and Graphical Statistics</em> 31 (4):
+1189–1201. <a href="https://doi.org/10.1080/10618600.2022.2069779">https://doi.org/10.1080/10618600.2022.2069779</a>.
+</div>
+<div id="ref-MM2014" class="csl-entry">
+Martínez, Asael Fabian, and Ramsés H. Mena. 2014. <span>“<span class="nocase">On a Nonparametric Change Point Detection Model in
+Markovian Regimes</span>.”</span> <em>Bayesian Analysis</em> 9 (4):
+823–58. <a href="https://doi.org/10.1214/14-BA878">https://doi.org/10.1214/14-BA878</a>.
+</div>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
