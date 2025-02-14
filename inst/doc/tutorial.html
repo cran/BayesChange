@@ -390,28 +390,15 @@ autoregressive coefficient <code>phi</code> for the likelihood of the
 data and the parameters <code>a</code>, <code>b</code>, <code>c</code>
 for the priors.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">detect_cp_uni</span>(<span class="at">data =</span> data_uni,                             </span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>                            <span class="at">n_iterations =</span> <span class="dv">2500</span>,</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>                            <span class="at">n_iterations =</span> <span class="dv">1000</span>,</span>
 <span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>                            <span class="at">q =</span> <span class="fl">0.25</span>,</span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>                            <span class="at">phi =</span> <span class="fl">0.1</span>, <span class="at">a =</span> <span class="dv">1</span>, <span class="at">b =</span> <span class="dv">1</span>, <span class="at">c =</span> <span class="fl">0.1</span>)</span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; Completed:   250/2500 - in 0.032 sec</span></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; Completed:   500/2500 - in 0.06 sec</span></span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; Completed:   750/2500 - in 0.099 sec</span></span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; Completed:   1000/2500 - in 0.137 sec</span></span>
-<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; Completed:   1250/2500 - in 0.173 sec</span></span>
-<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; Completed:   1500/2500 - in 0.22 sec</span></span>
-<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt; Completed:   1750/2500 - in 0.256 sec</span></span>
-<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt; Completed:   2000/2500 - in 0.288 sec</span></span>
-<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt; Completed:   2250/2500 - in 0.32 sec</span></span>
-<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt; Completed:   2500/2500 - in 0.403 sec</span></span></code></pre></div>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>                            <span class="at">phi =</span> <span class="fl">0.1</span>, <span class="at">a =</span> <span class="dv">1</span>, <span class="at">b =</span> <span class="dv">1</span>, <span class="at">c =</span> <span class="fl">0.1</span>)</span></code></pre></div>
 <p>In order to get a point estimate of the final partition we can use
 the function <code>get_clust_VI</code> that choose as final estimate for
 the partition the visited partition that minimizes the Variation of
 Information loss function.</p>
 <p>The function correctly detect a change point at time 50.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">table</span>(<span class="fu">get_clust_VI</span>(out<span class="sc">$</span>order[<span class="dv">500</span><span class="sc">:</span><span class="dv">2500</span>,]))</span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt;  0  1 </span></span>
-<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; 50 50</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">table</span>(<span class="fu">get_clust_VI</span>(out<span class="sc">$</span>order))</span></code></pre></div>
 <p><em>Remark</em>: the function <code>get_clust_VI</code> has been
 included inside the package in order to give the user an easy way to
 obtain a final estimate of the partition. In literature there are many
@@ -432,24 +419,11 @@ series.</p>
 <code>prior_var_gamma</code> correspond to the parameters of the prior
 distributions for the multivariate likelihood.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">detect_cp_multi</span>(<span class="at">data =</span> data_multi,</span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>                              <span class="at">n_iterations =</span> <span class="dv">2500</span>,</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>                              <span class="at">n_iterations =</span> <span class="dv">1000</span>,</span>
 <span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>                              <span class="at">q =</span> <span class="fl">0.25</span>, <span class="at">k_0 =</span> <span class="fl">0.25</span>, <span class="at">nu_0 =</span> <span class="dv">4</span>, <span class="at">phi_0 =</span> <span class="fu">diag</span>(<span class="dv">1</span>,<span class="dv">3</span>,<span class="dv">3</span>), <span class="at">m_0 =</span> <span class="fu">rep</span>(<span class="dv">0</span>,<span class="dv">3</span>),</span>
 <span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>                              <span class="at">par_theta_c =</span> <span class="dv">2</span>, <span class="at">par_theta_d =</span> <span class="fl">0.2</span>, <span class="at">prior_var_gamma =</span> <span class="fl">0.1</span>)</span>
-<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt; Completed:   250/2500 - in 0.09 sec</span></span>
-<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt; Completed:   500/2500 - in 0.142 sec</span></span>
-<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt; Completed:   750/2500 - in 0.187 sec</span></span>
-<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt; Completed:   1000/2500 - in 0.226 sec</span></span>
-<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt; Completed:   1250/2500 - in 0.275 sec</span></span>
-<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt; Completed:   1500/2500 - in 0.326 sec</span></span>
-<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co">#&gt; Completed:   1750/2500 - in 0.409 sec</span></span>
-<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co">#&gt; Completed:   2000/2500 - in 0.494 sec</span></span>
-<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="co">#&gt; Completed:   2250/2500 - in 0.569 sec</span></span>
-<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co">#&gt; Completed:   2500/2500 - in 0.635 sec</span></span>
-<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a></span>
-<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="fu">table</span>(<span class="fu">get_clust_VI</span>(out<span class="sc">$</span>order[<span class="dv">500</span><span class="sc">:</span><span class="dv">2500</span>,]))</span>
-<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a><span class="co">#&gt;  0  1 </span></span>
-<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a><span class="co">#&gt; 50 50</span></span></code></pre></div>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="fu">table</span>(<span class="fu">get_clust_VI</span>(out<span class="sc">$</span>order))</span></code></pre></div>
 </div>
 <div id="cluster-time-series-with-common-change-points" class="section level2">
 <h2>Cluster time series with common change points</h2>
@@ -472,38 +446,9 @@ elements in the normalisation constant <code>B</code>, the
 split-and-merge step <code>L</code> performed when a new partition is
 proposed and the autoregressive coefficient <code>gamma</code> for the
 likelihood of the time series.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">clust_cp_uni</span>(<span class="at">data =</span> data_mat, <span class="at">n_iterations =</span> <span class="dv">2500</span>, <span class="at">B =</span> <span class="dv">1000</span>, <span class="at">L =</span> <span class="dv">1</span>, <span class="at">gamma =</span> <span class="fl">0.5</span>)</span>
-<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  100/1000 - in 0.014 sec</span></span>
-<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  200/1000 - in 0.024 sec</span></span>
-<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  300/1000 - in 0.037 sec</span></span>
-<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  400/1000 - in 0.048 sec</span></span>
-<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  500/1000 - in 0.058 sec</span></span>
-<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  600/1000 - in 0.068 sec</span></span>
-<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  700/1000 - in 0.077 sec</span></span>
-<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  800/1000 - in 0.086 sec</span></span>
-<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  900/1000 - in 0.096 sec</span></span>
-<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  1000/1000 - in 0.104 sec</span></span>
-<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co">#&gt; ------ MAIN LOOP ------</span></span>
-<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="co">#&gt; Completed:   250/2500 - in 0.284 sec</span></span>
-<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="co">#&gt; Completed:   500/2500 - in 0.489 sec</span></span>
-<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="co">#&gt; Completed:   750/2500 - in 0.679 sec</span></span>
-<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a><span class="co">#&gt; Completed:   1000/2500 - in 0.873 sec</span></span>
-<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a><span class="co">#&gt; Completed:   1250/2500 - in 1.067 sec</span></span>
-<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a><span class="co">#&gt; Completed:   1500/2500 - in 1.257 sec</span></span>
-<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a><span class="co">#&gt; Completed:   1750/2500 - in 1.455 sec</span></span>
-<span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a><span class="co">#&gt; Completed:   2000/2500 - in 1.642 sec</span></span>
-<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a><span class="co">#&gt; Completed:   2250/2500 - in 1.842 sec</span></span>
-<span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a><span class="co">#&gt; Completed:   2500/2500 - in 2.09 sec</span></span>
-<span id="cb8-25"><a href="#cb8-25" tabindex="-1"></a></span>
-<span id="cb8-26"><a href="#cb8-26" tabindex="-1"></a><span class="fu">get_clust_VI</span>(out<span class="sc">$</span>clust[<span class="dv">500</span><span class="sc">:</span><span class="dv">2500</span>,])</span>
-<span id="cb8-27"><a href="#cb8-27" tabindex="-1"></a><span class="co">#&gt;      [,1]</span></span>
-<span id="cb8-28"><a href="#cb8-28" tabindex="-1"></a><span class="co">#&gt; [1,]    0</span></span>
-<span id="cb8-29"><a href="#cb8-29" tabindex="-1"></a><span class="co">#&gt; [2,]    0</span></span>
-<span id="cb8-30"><a href="#cb8-30" tabindex="-1"></a><span class="co">#&gt; [3,]    0</span></span>
-<span id="cb8-31"><a href="#cb8-31" tabindex="-1"></a><span class="co">#&gt; [4,]    1</span></span>
-<span id="cb8-32"><a href="#cb8-32" tabindex="-1"></a><span class="co">#&gt; [5,]    1</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">clust_cp_uni</span>(<span class="at">data =</span> data_mat, <span class="at">n_iterations =</span> <span class="dv">1000</span>, <span class="at">B =</span> <span class="dv">1000</span>, <span class="at">L =</span> <span class="dv">1</span>, <span class="at">gamma =</span> <span class="fl">0.5</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="fu">get_clust_VI</span>(out<span class="sc">$</span>clust)</span></code></pre></div>
 <p>In <code>clust_cp_multi</code> data must be an array, where each
 element is a multivariate time series represented by a matrix. Each row
 of the matrix is a component of the time series.</p>
@@ -531,39 +476,10 @@ of the matrix is a component of the time series.</p>
 <p>Parameters for the algorithm are the same of
 <code>clust_cp_uni</code>, parameters of the multivariate likelihood
 correspond to those in <code>detect_cp_multi</code></p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">clust_cp_multi</span>(<span class="at">data =</span> data_array, <span class="at">n_iterations =</span> <span class="dv">2500</span>, <span class="at">B =</span> <span class="dv">1000</span>, <span class="at">L =</span> <span class="dv">1</span>,</span>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">clust_cp_multi</span>(<span class="at">data =</span> data_array, <span class="at">n_iterations =</span> <span class="dv">1000</span>, <span class="at">B =</span> <span class="dv">1000</span>, <span class="at">L =</span> <span class="dv">1</span>,</span>
 <span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>                        <span class="at">gamma =</span> <span class="fl">0.1</span>, <span class="at">k_0 =</span> <span class="fl">0.25</span>, <span class="at">nu_0 =</span> <span class="dv">5</span>, <span class="at">phi_0 =</span> <span class="fu">diag</span>(<span class="fl">0.1</span>,<span class="dv">3</span>,<span class="dv">3</span>), <span class="at">m_0 =</span> <span class="fu">rep</span>(<span class="dv">0</span>,<span class="dv">3</span>))</span>
-<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  100/1000 - in 0.012 sec</span></span>
-<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  200/1000 - in 0.023 sec</span></span>
-<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  300/1000 - in 0.044 sec</span></span>
-<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  400/1000 - in 0.075 sec</span></span>
-<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  500/1000 - in 0.104 sec</span></span>
-<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  600/1000 - in 0.129 sec</span></span>
-<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  700/1000 - in 0.145 sec</span></span>
-<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  800/1000 - in 0.156 sec</span></span>
-<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  900/1000 - in 0.167 sec</span></span>
-<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt; Normalization constant - completed:  1000/1000 - in 0.18 sec</span></span>
-<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="co">#&gt; ------ MAIN LOOP ------</span></span>
-<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a><span class="co">#&gt; Completed:   250/2500 - in 0.235 sec</span></span>
-<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a><span class="co">#&gt; Completed:   500/2500 - in 0.486 sec</span></span>
-<span id="cb10-18"><a href="#cb10-18" tabindex="-1"></a><span class="co">#&gt; Completed:   750/2500 - in 0.735 sec</span></span>
-<span id="cb10-19"><a href="#cb10-19" tabindex="-1"></a><span class="co">#&gt; Completed:   1000/2500 - in 0.967 sec</span></span>
-<span id="cb10-20"><a href="#cb10-20" tabindex="-1"></a><span class="co">#&gt; Completed:   1250/2500 - in 1.245 sec</span></span>
-<span id="cb10-21"><a href="#cb10-21" tabindex="-1"></a><span class="co">#&gt; Completed:   1500/2500 - in 1.54 sec</span></span>
-<span id="cb10-22"><a href="#cb10-22" tabindex="-1"></a><span class="co">#&gt; Completed:   1750/2500 - in 1.826 sec</span></span>
-<span id="cb10-23"><a href="#cb10-23" tabindex="-1"></a><span class="co">#&gt; Completed:   2000/2500 - in 2.098 sec</span></span>
-<span id="cb10-24"><a href="#cb10-24" tabindex="-1"></a><span class="co">#&gt; Completed:   2250/2500 - in 2.365 sec</span></span>
-<span id="cb10-25"><a href="#cb10-25" tabindex="-1"></a><span class="co">#&gt; Completed:   2500/2500 - in 2.615 sec</span></span>
-<span id="cb10-26"><a href="#cb10-26" tabindex="-1"></a></span>
-<span id="cb10-27"><a href="#cb10-27" tabindex="-1"></a><span class="fu">get_clust_VI</span>(out<span class="sc">$</span>clust[<span class="dv">500</span><span class="sc">:</span><span class="dv">2000</span>,])</span>
-<span id="cb10-28"><a href="#cb10-28" tabindex="-1"></a><span class="co">#&gt;      [,1]</span></span>
-<span id="cb10-29"><a href="#cb10-29" tabindex="-1"></a><span class="co">#&gt; [1,]    0</span></span>
-<span id="cb10-30"><a href="#cb10-30" tabindex="-1"></a><span class="co">#&gt; [2,]    0</span></span>
-<span id="cb10-31"><a href="#cb10-31" tabindex="-1"></a><span class="co">#&gt; [3,]    0</span></span>
-<span id="cb10-32"><a href="#cb10-32" tabindex="-1"></a><span class="co">#&gt; [4,]    1</span></span>
-<span id="cb10-33"><a href="#cb10-33" tabindex="-1"></a><span class="co">#&gt; [5,]    1</span></span></code></pre></div>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="fu">get_clust_VI</span>(out<span class="sc">$</span>clust)</span></code></pre></div>
 </div>
 <div id="cluster-survival-functions-with-common-change-points" class="section level2">
 <h2>Cluster survival functions with common change points</h2>
@@ -601,9 +517,9 @@ time. Inside this package is included the function
 parameters, the number of Monte Carlo replications <code>M</code> for
 the approximation of the integrated likelihood and the recovery rate
 <code>gamma</code>.</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">clust_cp_epi</span>(<span class="at">data =</span> data_mat, <span class="at">n_iterations =</span> <span class="dv">2500</span>, <span class="at">M =</span> <span class="dv">250</span>, <span class="at">B =</span> <span class="dv">1000</span>, <span class="at">L =</span> <span class="dv">1</span>, <span class="at">q =</span> <span class="fl">0.1</span>, <span class="at">gamma =</span> <span class="dv">1</span><span class="sc">/</span><span class="dv">8</span>)</span>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">clust_cp_epi</span>(<span class="at">data =</span> data_mat, <span class="at">n_iterations =</span> <span class="dv">1000</span>, <span class="at">M =</span> <span class="dv">250</span>, <span class="at">B =</span> <span class="dv">1000</span>, <span class="at">L =</span> <span class="dv">1</span>, <span class="at">q =</span> <span class="fl">0.1</span>, <span class="at">gamma =</span> <span class="dv">1</span><span class="sc">/</span><span class="dv">8</span>)</span>
 <span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a></span>
-<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a><span class="fu">get_clust_VI</span>(out<span class="sc">$</span>clust[<span class="dv">500</span><span class="sc">:</span><span class="dv">2500</span>,])</span></code></pre></div>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a><span class="fu">get_clust_VI</span>(out<span class="sc">$</span>clust)</span></code></pre></div>
 <div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
 <div id="ref-corradin2024" class="csl-entry">
 Corradin, Riccardo, Luca Danese, Wasiur R. KhudaBukhsh, and Andrea
