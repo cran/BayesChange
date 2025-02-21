@@ -1,6 +1,6 @@
 Package: BayesChange
 Title: Bayesian Methods for Change Points Analysis
-Version: 1.1.1
+Version: 1.1.2
 Authors@R: c(
     person("Luca", "Danese", role = c("aut", "cre", "cph"), email = "l.danese1@campus.unimib.it", comment = c(ORCID = "0000-0001-8444-8563")), 
     person("Riccardo", "Corradin", role = "aut"),
@@ -18,10 +18,10 @@ VignetteBuilder: knitr
 URL: https://github.com/lucadanese/BayesChange
 BugReports: https://github.com/lucadanese/BayesChange/issues
 NeedsCompilation: yes
-Packaged: 2025-02-14 18:48:13 UTC; LUCA
+Packaged: 2025-02-21 10:43:40 UTC; LUCA
 Author: Luca Danese [aut, cre, cph] (<https://orcid.org/0000-0001-8444-8563>),
   Riccardo Corradin [aut],
   Andrea Ongaro [aut]
 Maintainer: Luca Danese <l.danese1@campus.unimib.it>
 Repository: CRAN
-Date/Publication: 2025-02-14 23:00:15 UTC
+Date/Publication: 2025-02-21 11:00:02 UTC

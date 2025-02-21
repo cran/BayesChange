@@ -1,6 +1,6 @@
-308046ca8735966f6044774f3a71f496 *DESCRIPTION
+2801dcec270fcf2f4ef7f0f55becc13c *DESCRIPTION
 e85600f66cafe73ad27695ea72395724 *NAMESPACE
-730144e2ae3f1db0adb67c24ffd60a09 *NEWS.md
+c04bb06c7bf57e5cf0c4eae064d1502d *NEWS.md
 a22f59bbaa0bde336bacc166720e250f *R/BayesChange-package.R
 896ce1d3920db8514297a25e5a130e25 *R/RcppExports.R
 bd188f88e7ce2367c0dc05d921ff1e7f *README.md
@@ -21,7 +21,7 @@ fa334a4b132f5ee910dd761b21921733 *man/get_clust_VI.Rd
 2f205a7e279d292ab0ce13a28d6128f5 *src/Makevars
 2f205a7e279d292ab0ce13a28d6128f5 *src/Makevars.win
 fd9dc6ee6652cef90b8bc02c00c0cbb2 *src/RcppExports.cpp
-957271d2a7119fee1a83ad01d3356903 *src/code.cpp
+2311fd480fddbc61e8bbf1280290cb02 *src/code.cpp
 ef7fb19f3239df0e931257c547f9e87b *tests/testthat.R
 10e296dc50e6641e73564b7a599ec0ce *tests/testthat/test-test-clust_cp_epi.R
 bdb712d821f858f7ce0654150c249e57 *tests/testthat/test-test-clust_cp_multi.R
