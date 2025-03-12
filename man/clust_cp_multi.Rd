@@ -16,7 +16,6 @@ clust_cp_multi(
   m_0,
   q = 0.5,
   alpha_SM = 0.1,
-  coars = 1,
   print_progress = TRUE,
   user_seed = 1234L
 )
@@ -36,8 +35,6 @@ clust_cp_multi(
 
 \item{alpha_SM}{\eqn{\alpha} for the split-merge proposal and acceleration step.}
 
-\item{coars}{coarsening coefficient, must be in (0,1].}
-
 \item{print_progress}{If TRUE (default) print the progress bar.}
 
 \item{user_seed}{seed for random distribution generation.}
@@ -54,7 +51,7 @@ Function \code{clust_cp_multi} returns a list containing the following component
 Clustering multivariate times series with common changes in time
 }
 \examples{
-
+\donttest{
 data_array <- array(data = NA, dim = c(3,100,5))
 
 data_array[1,,1] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
@@ -79,7 +76,5 @@ data_array[3,,5] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
 
 out <- clust_cp_multi(data = data_array, n_iterations = 3000, B = 1000, L = 1,
                         gamma = 0.1, k_0 = 0.25, nu_0 = 5, phi_0 = diag(0.1,3,3), m_0 = rep(0,3))
-
-get_clust_VI(out$clust[1000:3000,])
-
+}
 }
