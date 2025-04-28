@@ -8,7 +8,9 @@ detect_cp(
   data,
   n_iterations,
   n_burnin = 0,
+  q = 0.5,
   params = list(),
+  kernel,
   print_progress = TRUE,
   user_seed = 1234
 )
@@ -22,27 +24,39 @@ and columns are the times, then the algorithm for multivariate time series is us
 
 \item{n_burnin}{number of iterations that must be excluded when computing the posterior estimate.}
 
+\item{q}{probability of performing a split at each iteration.}
+
 \item{params}{a list of parameters:
 
-If the time series is univariate the following must be specified:
+If data is an univariate time series the following must be specified:
 
 \itemize{
-\item \code{q} probability of performing a split at each iteration.
-\item \code{phi} parameter \eqn{\phi} of the integrated likelihood function.
 \item \code{a}, \code{b}, \code{c} parameters of the Normal-Gamma prior for \eqn{\mu} and \eqn{\lambda}.
-\item \code{par_theta_c}, \code{par_theta_d} parameters of the shifted Gamma prior for \eqn{\theta}.
+\item \code{prior_var_phi} variance for the proposal in the \eqn{N(0,\sigma^2_\phi)} posterior estimate of \eqn{\theta}.
+\item \code{par_theta_c} parameter of the shifted Gamma prior of \eqn{\theta}.
+\item \code{par_theta_d} parameter of the shifted Gamma prior of \eqn{\theta}.
 }
 
 If the time series is multivariate the following must be specified:
 
 \itemize{
-\item \code{q} probability of performing a split at each iteration.
-\item \code{k_0}, \code{nu_0}, \code{phi_0}, \code{m_0} parameters for the Normal-Inverse-Wishart prior for \eqn{(\mu,\lambda)}.
-\item \code{par_theta_c}, \code{par_theta_d} parameters for the shifted Gamma prior for \eqn{\theta}.
-\item \code{prior_var_gamma} parameters for the Gamma prior for \eqn{\gamma}.
-\item \code{print_progress} If TRUE (default) print the progress bar.
-\item \code{user_seed} seed for random distribution generation.
+\item \code{m_0}, \code{k_0}, \code{nu_0}, \code{S_0} parameters for the Normal-Inverse-Wishart prior for \eqn{(\mu,\lambda)}.
+\item \code{prior_var_phi} variance for the proposal in the \eqn{N(0,\sigma^2_\phi)} posterior estimate of \eqn{\theta}.
+\item \code{par_theta_c} parameter of the shifted Gamma prior of \eqn{\theta}.
+\item \code{par_theta_d} parameter of the shifted Gamma prior of \eqn{\theta}.
+}
+
+If data are survival functions:
+
+\itemize{
+\item \code{M} number of Monte Carlo iterations when computing the likelihood of the survival function.
+\item \code{xi} recovery rate fixed constant for each population at each time.
+\item \code{a0},\code{b0} parameters for the computation of the integrated likelihood of the survival functions.
+\item \code{I0_var} variance for the Metropolis-Hastings estimation of the proportion of infected at time 0.
+\item \code{p} prior average number of change points for each order.
 }}
+
+\item{kernel}{can be "ts" if data are time series or "epi" if data are survival functions.}
 
 \item{print_progress}{If TRUE (default) print the progress bar.}
 
@@ -58,10 +72,14 @@ A \code{DetectCpObj} class object containing
 \item \code{$orders} matrix where each entries is the assignment of the realization to a block. Rows are the iterations and columns the times.
 \item \code{$time} computational time.
 \item \code{$gammaMCMC} traceplot for \eqn{\gamma}.
-\item \code{$gamma_MCMC_01} a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{\gamma} was accepted, \eqn{0} otherwise.
+\item \code{$phi_MCMC_01} a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{\gamma} was accepted, \eqn{0} otherwise.
 \item \code{$sigma_MCMC} traceplot for \eqn{\sigma}.
 \item \code{$sigma_MCMC_01} a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{\sigma} was accepted, \eqn{0} otherwise.
 \item \code{$theta_MCMC} traceplot for \eqn{\theta}.
+\item \code{I0_MCMC} traceplot for \eqn{I_0}.
+\item \code{I0_MCMC_01} a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{I_0} was accepted, \eqn{0} otherwise.
+\item \code{kernel_ts} if TRUE data are time series.
+\item \code{kernel_epi} if TRUE data are survival functions.
 \item \code{$univariate_ts} TRUE if data is an univariate time series, FALSE if it is a multivariate time series.
 }
 }
@@ -74,9 +92,8 @@ The \code{detect_cp} function detect change points on univariate and multivariat
 
 data_vec <- as.numeric(c(rnorm(50,0,0.1), rnorm(50,1,0.25)))
 
-
 out <- detect_cp(data = data_vec, n_iterations = 2500, n_burnin = 500,
-                 params = list(q = 0.25, phi = 0.1, a = 1, b = 1, c = 0.1))
+                 params = list(a = 1, b = 1, c = 0.1), kernel = "ts")
 
 print(out)
 
@@ -88,16 +105,43 @@ data_mat[1,] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
 data_mat[2,] <- as.numeric(c(rnorm(50,0,0.125), rnorm(50,1,0.225)))
 data_mat[3,] <- as.numeric(c(rnorm(50,0,0.175), rnorm(50,1,0.280)))
 
-
 out <- detect_cp(data = data_mat, n_iterations = 2500, n_burnin = 500,
-                 params = list(q = 0.25, k_0 = 0.25, nu_0 = 4, phi_0 = diag(1,3,3), m_0 = rep(0,3),
-                               par_theta_c = 2, par_theta_d = 0.2, prior_var_gamma = 0.1))
+                 params = list(m_0 = rep(0,3), k_0 = 0.25, nu_0 = 4,
+                               S_0 = diag(1,3,3)), kernel = "ts")
 
 print(out)
+
+\donttest{
+## Survival functions
+
+data_mat <- matrix(NA, nrow = 1, ncol = 100)
+
+betas <- c(rep(0.45, 25),rep(0.14,75))
+
+inf_times <- sim_epi_data(10000, 10, 100, betas, 1/8)
+
+inf_times_vec <- rep(0,100)
+names(inf_times_vec) <- as.character(1:100)
+
+for(j in 1:100){
+ if(as.character(j) \%in\% names(table(floor(inf_times)))){
+   inf_times_vec[j] = table(floor(inf_times))[which(names(table(floor(inf_times))) == j)]
+ }
+}
+
+data_mat[1,] <- inf_times_vec
+
+out <- detect_cp(data = data_mat, n_iterations = 500, n_burnin = 100,
+                 params = list(M = 250, xi = 1/8, a0 = 40, b0 = 10), kernel = "epi")
+
+print(out)
+}
 
 }
 \references{
 Martínez, A. F., & Mena, R. H. (2014). On a Nonparametric Change Point Detection Model in Markovian Regimes. \emph{Bayesian Analysis}, 9(4), 823–858. \doi{10.1214/14-BA878}
 
 Corradin, R., Danese, L., & Ongaro, A. (2022). Bayesian nonparametric change point detection for multivariate time series with missing observations. \emph{International Journal of Approximate Reasoning}, 143, 26--43. \doi{10.1016/j.ijar.2021.12.019}
+
+Corradin, R., Danese, L., KhudaBukhsh, W. R., & Ongaro, A. (2024). \emph{Model-based clustering of time-dependent observations with common structural changes}. arXiv preprint arXiv:2410.09552.
 }

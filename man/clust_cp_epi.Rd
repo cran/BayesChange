@@ -10,18 +10,13 @@ clust_cp_epi(
   M,
   B,
   L,
-  gamma = 1/8,
-  alpha = 1,
+  xi = 1/8,
+  alpha_SM = 1,
   q = 0.1,
-  dt = 0.1,
   a0 = 4,
   b0 = 10,
-  c0 = 1,
-  d0 = 1,
-  MH_var = 0.01,
-  S0 = 1,
-  R0 = 0,
-  p = 0.003,
+  I0_var = 0.01,
+  avg_blk = 0.003,
   print_progress = TRUE,
   user_seed = 1234L
 )
@@ -37,19 +32,17 @@ clust_cp_epi(
 
 \item{L}{number of split-merge steps for the proposal step.}
 
-\item{gamma}{recovery rate fixed constant for each population at each time.}
+\item{xi}{recovery rate fixed constant for each population at each time.}
 
-\item{alpha}{\eqn{\alpha} for the acceptance ration in the split-merge procedure.}
+\item{alpha_SM}{\eqn{\alpha} parameter for the main split-merge algorithm.}
 
 \item{q}{probability of performing a split when updating the single order for the proposal procedure.}
 
-\item{dt, a0, b0, c0, d0}{parameters for the computation of the integrated likelihood of the survival functions.}
+\item{a0, b0}{parameters for the computation of the integrated likelihood of the survival functions.}
 
-\item{MH_var}{variance for the Metropolis-Hastings estimation of the proportion of infected at time 0.}
+\item{I0_var}{variance for the Metropolis-Hastings estimation of the proportion of infected at time 0.}
 
-\item{S0, R0}{parameters for the SDE solver.}
-
-\item{p}{prior average number of change points for each order.}
+\item{avg_blk}{average number of change points for the random generated orders.}
 
 \item{print_progress}{If TRUE (default) print the progress bar.}
 

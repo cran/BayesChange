@@ -4,7 +4,7 @@
 \alias{sim_epi_data}
 \title{Simulate epidemiological data}
 \usage{
-sim_epi_data(S0, I0, max_time, beta_vec, gamma_0, user_seed = 1234L)
+sim_epi_data(S0, I0, max_time, beta_vec, xi_0, user_seed = 1234L)
 }
 \arguments{
 \item{S0}{number of individuals in the population.}
@@ -15,7 +15,7 @@ sim_epi_data(S0, I0, max_time, beta_vec, gamma_0, user_seed = 1234L)
 
 \item{beta_vec}{vector with the infection rate for each discrete time.}
 
-\item{gamma_0}{the recovery rate. for the population, must be in \eqn{(0,1)}.}
+\item{xi_0}{the recovery rate of the population, must be in \eqn{(0,1)}.}
 
 \item{user_seed}{seed for random distribution generation.}
 }
@@ -24,4 +24,13 @@ Function \code{sim_epi_data} returns a vector with the simulated infection times
 }
 \description{
 Simulate epidemiological data
+}
+\examples{
+
+betas <- c(rep(0.45, 25),rep(0.14,25))
+
+inf_times <- as.numeric()
+
+inf_times <- sim_epi_data(10000, 10, 50, betas, 1/8)
+
 }

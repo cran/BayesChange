@@ -2,22 +2,25 @@
 % Please edit documentation in R/clust_cp.R
 \name{clust_cp}
 \alias{clust_cp}
-\title{Clustering time dependent obsevations with common change points.}
+\title{Clustering time dependent observations with common change points.}
 \usage{
 clust_cp(
   data,
   n_iterations,
   n_burnin = 0,
   params = list(),
+  alpha_SM = 1,
+  B = 1000,
+  L = 1,
+  q = 0.5,
+  kernel,
   print_progress = TRUE,
-  user_seed = 1234,
-  kernel
+  user_seed = 1234
 )
 }
 \arguments{
-\item{data}{a vector or a matrix. If a vector the algorithm for
-univariate time series is used. If a matrix, where rows are the observations
-and columns are the times, then the algorithm for multivariate time series is used.}
+\item{data}{a matrix or an array If a matrix the algorithm for
+univariate time series is used, where each row is a time series. If an array, the algorithm is run for multivariate time series. Each slice of the array is a matrix where the rows are the dimensions of the time series.}
 
 \item{n_iterations}{number of MCMC iterations.}
 
@@ -28,43 +31,40 @@ and columns are the times, then the algorithm for multivariate time series is us
 If the time series is univariate the following must be specified:
 
 \itemize{
-\item \code{q} probability of a split in the split-merge proposal and acceleration step.
-\item \code{B} number of orders for the normalization constant.
-\item \code{L} number of split-merge steps for the proposal step.
-\item \code{alpha_SM} \eqn{\alpha} for the split-merge proposal and acceleration step.
-\item \code{gamma},\code{a},\code{b},\code{c} parameters of the integrated likelihood.
+\item \code{a},\code{b},\code{c} parameters of the integrated likelihood.
+\item \code{phi} correlation parameter in the likelihood.
 }
 
 If the time series is multivariate the following must be specified:
 
 \itemize{
-\item \code{q} probability of a split in the split-merge proposal and acceleration step.
-\item \code{B} number of orders for the normalization constant.
-\item \code{L} number of split-merge steps for the proposal step.
-\item \code{gamma},\code{k_0},\code{nu_0},\code{phi_0},\code{m_0} parameters of the integrated likelihood.
+\item \code{k_0},\code{nu_0},\code{S_0},\code{m_0} parameters of the integrated likelihood.
+\item \code{phi} correlation parameter in the likelihood.
 }
 
 If data are survival functions:
 
 \itemize{
-\item \code{q} probability of a split in the split-merge proposal and acceleration step.
-\item \code{B} number of orders for the normalization constant.
-\item \code{L} number of split-merge steps for the proposal step.
-\item \code{alpha_SM} \eqn{\alpha} for the split-merge proposal and acceleration step.
 \item \code{M} number of Monte Carlo iterations when computing the likelihood of the survival function.
-\item \code{gamma} recovery rate fixed constant for each population at each time.
-\item \code{alpha} \eqn{\alpha} for the acceptance ration in the split-merge procedure.
-\item \code{dt},\code{a0},\code{b0},\code{c0},\code{d0} parameters for the computation of the integrated likelihood of the survival functions.
-\item \code{MH_var} variance for the Metropolis-Hastings estimation of the proportion of infected at time 0.
-\item \code{S0},\code{R0} parameters for the SDE solver.
+\item \code{xi} recovery rate fixed constant for each population at each time.
+\item \code{a0},\code{b0} parameters for the computation of the integrated likelihood of the survival functions.
+\item \code{I0_var} variance for the Metropolis-Hastings estimation of the proportion of infected at time 0.
 \item \code{p} prior average number of change points for each order.
 }}
+
+\item{alpha_SM}{\eqn{\alpha} for the split-merge main algorithm.}
+
+\item{B}{number of orders for the normalization constant.}
+
+\item{L}{number of split-merge steps for the proposal step.}
+
+\item{q}{probability of a split in the split-merge proposal and acceleration step.}
+
+\item{kernel}{can be "ts" if data are time series or "epi" if data are survival functions.}
 
 \item{print_progress}{If TRUE (default) print the progress bar.}
 
 \item{user_seed}{seed for random distribution generation.}
-
-\item{kernel}{can be "ts" if data are time series or "epi" if data are survival functions.}
 }
 \value{
 A \code{ClustCpObj} class object containing
@@ -77,8 +77,9 @@ A \code{ClustCpObj} class object containing
 \item \code{$orders} a multidimensional array where each slice is a matrix and represent an iteration. The row of each matrix correspond the order associated to the corresponding cluster.
 \item \code{$time} computational time.
 \item \code{$lkl} a matrix where each row is the likelihood of each observation computed at the corresponding iteration.
-\item \code{$norm_vec} a vector containing the normalisation constant computed at the beginning of the algorithm.
-\item \code{$rho} a vector with the final estimate of the proportion of infected individuals at time 0.
+\item \code{$norm_vec} a vector containing the normalization constant computed at the beginning of the algorithm.
+\item \code{I0_MCMC} traceplot for \eqn{I_0}.
+\item \code{I0_MCMC_01} a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{I_0} was accepted, \eqn{0} otherwise.
 \item \code{$kernel_ts} if TRUE data are time series.
 \item \code{$kernel_epi} if TRUE data are survival function.
 \item \code{$univariate_ts} TRUE if data is an univariate time series, FALSE if it is a multivariate time series.
@@ -101,7 +102,7 @@ data_mat[4,] <- as.numeric(c(rnorm(25,0,0.135), rnorm(75,1,0.225)))
 data_mat[5,] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
 
 out <- clust_cp(data = data_mat, n_iterations = 5000, n_burnin = 1000,
-                params = list(L = 1, B = 1000, gamma = 0.5), kernel = "ts")
+                 L = 1, params = list(phi = 0.5), B = 1000, kernel = "ts")
 
 print(out)
 
@@ -131,9 +132,9 @@ data_array[2,,5] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
 data_array[3,,5] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
 
 out <- clust_cp(data = data_array, n_iterations = 3000, n_burnin = 1000,
-                params = list(B = 1000, L = 1, gamma = 0.5, k_0 = 0.25,
-                              nu_0 = 5, phi_0 = diag(0.1,3,3),
-                              m_0 = rep(0,3)), kernel = "ts")
+                params = list(phi = 0.5, k_0 = 0.25,
+                              nu_0 = 5, S_0 = diag(0.1,3,3),
+                              m_0 = rep(0,3)), B = 1000,  kernel = "ts")
 
 print(out)
 
@@ -167,7 +168,7 @@ for(i in 1:5){
 }
 
 out <- clust_cp(data = data_mat, n_iterations = 100, n_burnin = 10,
-                params = list(M = 100, L = 1, B = 1000), kernel = "epi")
+                params = list(M = 100, xi = 1/8), B = 1000, kernel = "epi")
 
 print(out)
 }

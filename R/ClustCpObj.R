@@ -10,7 +10,8 @@
 #' @param time computational time in seconds;
 #' @param lkl a vector with the likelihood of the final clustering.
 #' @param norm_vec a vector with the estimated normalization constant.
-#' @param rho a vector with the estimated proportion of infected individuals for each observation.
+#' @param I0_MCMC traceplot for \eqn{I_0}.
+#' @param I0_MCMC_01 a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{I_0} was accepted, \eqn{0} otherwise.
 #' @param kernel_ts if TRUE data are time series.
 #' @param kernel_epi if TRUE data are survival functions.
 #' @param univariate_ts TRUE/FALSE if time series is univariate or not;
@@ -26,7 +27,8 @@ ClustCpObj <- function(data = NULL,
                        time = NULL,
                        lkl = NULL,
                        norm_vec = NULL,
-                       rho = NULL,
+                       I0_MCMC = NULL,
+                       I0_MCMC_01 = NULL,
                        kernel_ts = NULL,
                        kernel_epi = NULL,
                        univariate_ts = NULL){
@@ -39,7 +41,8 @@ ClustCpObj <- function(data = NULL,
                 time = time,
                 lkl = lkl,
                 norm_vec = norm_vec,
-                rho = rho,
+                I0_MCMC = I0_MCMC,
+                I0_MCMC_01 = I0_MCMC_01,
                 kernel_ts = kernel_ts,
                 kernel_epi = kernel_epi,
                 univariate_ts = univariate_ts)
@@ -65,7 +68,7 @@ ClustCpObj <- function(data = NULL,
 #' data_mat[5,] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
 #'
 #' out <- clust_cp(data = data_mat, n_iterations = 5000, n_burnin = 1000,
-#'                 params = list(L = 1, B = 1000, gamma = 0.5), kernel = "ts")
+#'                 params = list(L = 1, B = 1000, phi = 0.5), kernel = "ts")
 #'
 #' print(out)
 #'
@@ -103,7 +106,7 @@ print.ClustCpObj <- function(x, ...) {
 #' data_mat[5,] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
 #'
 #' out <- clust_cp(data = data_mat, n_iterations = 5000, n_burnin = 1000,
-#'                 params = list(L = 1, B = 1000, gamma = 0.5), kernel = "ts")
+#'                 params = list(L = 1, B = 1000, phi = 0.5), kernel = "ts")
 #'
 #' summary(out)
 #'
@@ -172,7 +175,7 @@ summary.ClustCpObj <- function(object, ...) {
 #' data_mat[5,] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
 #'
 #' out <- clust_cp(data = data_mat, n_iterations = 5000, n_burnin = 1000,
-#'                 params = list(L = 1, B = 1000, gamma = 0.5), kernel = "ts")
+#'                 params = list(L = 1, B = 1000, phi = 0.5), kernel = "ts")
 #'
 #' posterior_estimate(out)
 #'
@@ -282,7 +285,7 @@ posterior_estimate.ClustCpObj <- function(object,
 #' data_mat[5,] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
 #'
 #' out <- clust_cp(data = data_mat, n_iterations = 5000, n_burnin = 1000,
-#'                 params = list(L = 1, B = 1000, gamma = 0.5), kernel = "ts")
+#'                 params = list(L = 1, B = 1000, phi = 0.5), kernel = "ts")
 #'
 #' plot(out)
 #'
@@ -326,7 +329,7 @@ plot.ClustCpObj <- function(x, y = NULL,
                              nRuns = 16,
                              maxZealousAttempts = 10, ...) {
 
-  Observation <- Time <- Value <- Cluster <- count <- y <- obs <- NULL
+  Observation <- Time <- Value <- Cluster <- Count <- y <- obs <- NULL
 
   if(x$kernel_ts){
     if(x$univariate_ts){
@@ -348,7 +351,11 @@ plot.ClustCpObj <- function(x, y = NULL,
       .data_plot$Observation <- as.factor(.data_plot$Observation)
 
       ggplot2::ggplot(.data_plot) +
-        ggplot2::geom_line(ggplot2::aes(x = Time, y = Value, color = Cluster, group = Observation, linetype = Observation)) +
+        #ggplot2::geom_line(ggplot2::aes(x = Time, y = Value, color = Cluster, group = Observation, linetype = Observation)) +
+        ggplot2::geom_line(ggplot2::aes(x = Time, y = Value, color = Observation, group = Observation, linetype = Cluster)) +
+        ggplot2::xlab("Time") +
+        ggplot2::ylab("Value") +
+        ggplot2::scale_colour_brewer(palette = "Set1") +
         ggplot2::theme_minimal()
 
     } else {
@@ -359,21 +366,29 @@ plot.ClustCpObj <- function(x, y = NULL,
 
       .data_plot <- data.frame(Value = numeric(0))
 
+      count = 0
       for (i in 1:dim(x$data)[3]) {
         mat <- x$data[,,i]
-        .data_plot <- rbind(.data_plot, data.frame(Value = as.vector(mat),
-                                                 Observation = i,
-                                                 Cluster = est_cp[i],
-                                                 count = sort(rep(1:nrow(mat), ncol(mat))),
-                                                 Time = rep(1:ncol(mat),nrow(mat))))
+        for(j in 1:nrow(mat)){
+          count = count + 1
+          .data_plot <- rbind(.data_plot, data.frame(Value = as.vector(mat[j,]),
+                                                     Observation = i,
+                                                     Cluster = est_cp[i],
+                                                     Time = 1:ncol(mat),
+                                                     Count = count))
+        }
       }
+
 
       .data_plot$Observation <- as.factor(.data_plot$Observation)
       .data_plot$Cluster <- as.factor(.data_plot$Cluster)
-      .data_plot$count <- as.factor(.data_plot$count)
+      .data_plot$Count <- as.factor(.data_plot$Count)
 
       ggplot2::ggplot(.data_plot) +
-        ggplot2::geom_line(ggplot2::aes(x = Time, y = Value, color = Cluster, group = interaction(Observation,count), linetype = Observation)) +
+        ggplot2::geom_line(ggplot2::aes(x = Time, y = Value, color = Observation, group = Count, linetype = Cluster)) +
+        ggplot2::xlab("Time") +
+        ggplot2::ylab("Value") +
+        ggplot2::scale_colour_brewer(palette = "Set1") +
         ggplot2::theme_minimal()
 
     }
@@ -392,6 +407,7 @@ plot.ClustCpObj <- function(x, y = NULL,
       ggplot2::geom_line(lwd = 0.5) +
       ggplot2::xlab("Time") +
       ggplot2::ylab("Proportion of Infected Individuals") +
+      ggplot2::scale_colour_brewer(palette = "Set1") +
       ggplot2::theme_minimal()
 
   }
