@@ -33,7 +33,7 @@ ClustCpObj(
 
 \item{time}{computational time in seconds;}
 
-\item{lkl}{a vector with the likelihood of the final clustering.}
+\item{lkl}{a vector with the likelihood of the final partition}
 
 \item{norm_vec}{a vector with the estimated normalization constant.}
 
@@ -43,7 +43,7 @@ ClustCpObj(
 
 \item{kernel_ts}{if TRUE data are time series.}
 
-\item{kernel_epi}{if TRUE data are survival functions.}
+\item{kernel_epi}{if TRUE data are epidemic diffusions.}
 
 \item{univariate_ts}{TRUE/FALSE if time series is univariate or not;}
 }

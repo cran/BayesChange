@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{detect_cp_epi}
 \alias{detect_cp_epi}
-\title{Detect Change Points on a survival function}
+\title{Detect Change Points on a epidemic diffusion}
 \usage{
 detect_cp_epi(
   data,
@@ -18,17 +18,17 @@ detect_cp_epi(
 )
 }
 \arguments{
-\item{data}{a matrix where each row is a component of the time series and the columns correspond to the times.}
+\item{data}{a matrix where each column is a component of the epidemic diffusion and the rows correspond to the times.}
 
 \item{n_iterations}{number of MCMC iterations.}
 
 \item{q}{probability of performing a split at each iteration.}
 
-\item{M}{number of Monte Carlo iterations when computing the likelihood of the survival function.}
+\item{M}{number of Monte Carlo iterations when computing the likelihood of the epidemic diffusion.}
 
 \item{xi}{recovery rate fixed constant for each population at each time.}
 
-\item{a0, b0}{parameters for the computation of the integrated likelihood of the survival functions.}
+\item{a0, b0}{parameters for the computation of the integrated likelihood of the epidemic_diffusions.}
 
 \item{I0_var}{variance for the Metropolis-Hastings estimation of the proportion of infected at time 0.}
 
@@ -45,11 +45,11 @@ Function \code{detect_cp_epi} returns a list containing the following components
 }
 }
 \description{
-Detect Change Points on a survival function
+Detect Change Points on a epidemic diffusion
 }
 \examples{
 \donttest{
-data_mat <- matrix(NA, nrow = 1, ncol = 100)
+data_mat <- matrix(NA, nrow = 100, ncol = 1)
 
 betas <- c(rep(0.45, 25),rep(0.14,75))
 
@@ -60,11 +60,11 @@ names(inf_times_vec) <- as.character(1:100)
 
 for(j in 1:100){
  if(as.character(j) \%in\% names(table(floor(inf_times)))){
- inf_times_vec[j] =
- table(floor(inf_times))[which(names(table(floor(inf_times))) == j)]}
+ inf_times_vec[j] = table(floor(inf_times))[which(names(table(floor(inf_times))) == j)]
+ }
 }
 
-data_mat[1,] <- inf_times_vec
+data_mat[,1] <- inf_times_vec
 
 out <- detect_cp_epi(data = data_mat, n_iterations = 250, q = 0.5,
                      xi = 1/8, a0 = 40, b0 = 10, M = 250)

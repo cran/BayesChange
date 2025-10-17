@@ -11,11 +11,11 @@
 #' @param phi_MCMC_01 a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{\phi} was accepted, \eqn{0} otherwise.
 #' @param sigma_MCMC traceplot for \eqn{\sigma}.
 #' @param sigma_MCMC_01 a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{\sigma} was accepted, \eqn{0} otherwise.
-#' @param theta_MCMC traceplot for \eqn{\theta}.
+#' @param delta_MCMC traceplot for \eqn{\delta}.
 #' @param I0_MCMC traceplot for \eqn{I_0}.
 #' @param I0_MCMC_01 a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{I_0} was accepted, \eqn{0} otherwise.
 #' @param kernel_ts if TRUE data are time series.
-#' @param kernel_epi if TRUE data are survival functions.
+#' @param kernel_epi if TRUE data are epidemic diffusions.
 #' @param univariate_ts TRUE/FALSE if time series is univariate or not.
 #'
 #'
@@ -30,7 +30,7 @@ DetectCpObj <- function(data = NULL,
                          phi_MCMC_01 = NULL,
                          sigma_MCMC = NULL,
                          sigma_MCMC_01 = NULL,
-                         theta_MCMC = NULL,
+                         delta_MCMC = NULL,
                          I0_MCMC = NULL,
                          I0_MCMC_01 = NULL,
                          kernel_ts = NULL,
@@ -46,7 +46,7 @@ DetectCpObj <- function(data = NULL,
                 phi_MCMC_01 = phi_MCMC_01,
                 sigma_MCMC = sigma_MCMC,
                 sigma_MCMC_01 = sigma_MCMC_01,
-                theta_MCMC = theta_MCMC,
+                delta_MCMC = delta_MCMC,
                 I0_MCMC = I0_MCMC,
                 I0_MCMC_01 = I0_MCMC_01,
                 kernel_ts = kernel_ts,
@@ -72,7 +72,7 @@ DetectCpObj <- function(data = NULL,
 #' out <- detect_cp(data = data_mat, n_iterations = 2500, n_burnin = 500,
 #'                 params = list(q = 0.25, k_0 = 0.25, nu_0 = 4,
 #'                               S_0 = diag(1,3,3), m_0 = rep(0,3),
-#'                               par_theta_c = 2, par_theta_d = 0.2,
+#'                               prior_delta_c = 2, prior_delta_d = 0.2,
 #'                               prior_var_phi = 0.1), kernel = "ts")
 #' print(out)
 #'
@@ -89,7 +89,7 @@ print.DetectCpObj <- function(x, ...) {
     }
   }
   if(x$kernel_epi){
-    cat("Type: change points detection on a survival function")
+    cat("Type: change points detection on an epidemic diffusion")
   }
 
 }
@@ -111,7 +111,7 @@ print.DetectCpObj <- function(x, ...) {
 #' out <- detect_cp(data = data_mat, n_iterations = 2500, n_burnin = 500,
 #'                 params = list(q = 0.25, k_0 = 0.25, nu_0 = 4,
 #'                               S_0 = diag(1,3,3), m_0 = rep(0,3),
-#'                               par_theta_c = 2, par_theta_d = 0.2,
+#'                               prior_delta_c = 2, prior_delta_d = 0.2,
 #'                               prior_var_phi = 0.1), kernel = "ts")
 #' summary(out)
 #'
@@ -135,7 +135,7 @@ summary.DetectCpObj <- function(object, ...) {
   }
 
   if(object$kernel_epi){
-    cat("Detecting change points on a survival function:\n",
+    cat("Detecting change points on an epidemic diffusion:\n",
         "Number of burn-in iterations:", object$n_burnin, "\n",
         "Number of MCMC iterations:", object$n_iterations - object$n_burnin, "\n",
         "Computational time:", round(object$time, digits = 2), "seconds\n")
@@ -297,7 +297,7 @@ posterior_estimate.DetectCpObj <- function(object,
 #'
 #' out <- detect_cp(data = data_mat, n_iterations = 2500, n_burnin = 500,
 #'                  params = list(q = 0.25, k_0 = 0.25, nu_0 = 4, S_0 = diag(1,3,3),
-#'                                m_0 = rep(0,3), par_theta_c = 2, par_theta_d = 0.2,
+#'                                m_0 = rep(0,3), prior_delta_c = 2, prior_delta_d = 0.2,
 #'                                prior_var_phi = 0.1), kernel = "ts")
 #' plot(out)
 #'
@@ -360,7 +360,7 @@ plot.DetectCpObj <- function(x, y = NULL,
         }
 
         .data_plot <- as.data.frame(cbind(vec_data, sort(rep(1:nrow(x$data),ncol(x$data)))))
-        .data_plot$V2 <- factor(.data_plot$V2, labels = unique(paste0("obs ", .data_plot$V2)) )
+        .data_plot$V2 <- factor(.data_plot$V2, labels = unique(paste0("d = ", .data_plot$V2)) )
         .data_plot$time <- rep(1:ncol(x$data),nrow(x$data))
 
         p1 <- ggplot2::ggplot(.data_plot) +
@@ -383,6 +383,8 @@ plot.DetectCpObj <- function(x, y = NULL,
 
       est_cp = posterior_estimate(x, loss = loss, maxNClusters = maxNClusters,
                                   nRuns = nRuns, maxZealousAttempts = maxZealousAttempts)
+
+      x$data = t(x$data)
 
       .df_sf_plot <- data.frame(as.vector(sapply(1:nrow(x$data), function(y) 1 - cumsum(x$data[y,]) / sum(x$data[y,]))),
                                 rep(1:ncol(x$data), nrow(x$data)),
@@ -478,7 +480,7 @@ plot.DetectCpObj <- function(x, y = NULL,
         }
 
         .data_plot <- as.data.frame(cbind(vec_data, sort(rep(1:nrow(x$data),ncol(x$data)))))
-        .data_plot$V2 <- factor(.data_plot$V2, labels = unique(paste0("obs ", .data_plot$V2)) )
+        .data_plot$V2 <- factor(.data_plot$V2, labels = unique(paste0("d = ", .data_plot$V2)) )
         .data_plot$time <- rep(1:ncol(x$data),nrow(x$data))
 
         p1 <- ggplot2::ggplot(.data_plot) +
@@ -524,6 +526,8 @@ plot.DetectCpObj <- function(x, y = NULL,
 
       est_cp = posterior_estimate(x, loss = loss, maxNClusters = maxNClusters,
                                   nRuns = nRuns, maxZealousAttempts = maxZealousAttempts)
+
+      x$data = t(x$data)
 
       .df_sf_plot <- data.frame(as.vector(sapply(1:nrow(x$data), function(y) 1 - cumsum(x$data[y,]) / sum(x$data[y,]))),
                                 rep(1:ncol(x$data), nrow(x$data)),

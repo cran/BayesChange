@@ -16,9 +16,7 @@ detect_cp(
 )
 }
 \arguments{
-\item{data}{a vector or a matrix. If a vector the algorithm for
-univariate time series is used. If a matrix, where rows are the observations
-and columns are the times, then the algorithm for multivariate time series is used.}
+\item{data}{if kernel = "ts" a vector or a matrix. If kernel = "epi" a matrix.}
 
 \item{n_iterations}{number of MCMC iterations.}
 
@@ -32,31 +30,30 @@ If data is an univariate time series the following must be specified:
 
 \itemize{
 \item \code{a}, \code{b}, \code{c} parameters of the Normal-Gamma prior for \eqn{\mu} and \eqn{\lambda}.
-\item \code{prior_var_phi} variance for the proposal in the \eqn{N(0,\sigma^2_\phi)} posterior estimate of \eqn{\theta}.
-\item \code{par_theta_c} parameter of the shifted Gamma prior of \eqn{\theta}.
-\item \code{par_theta_d} parameter of the shifted Gamma prior of \eqn{\theta}.
+\item \code{prior_var_phi} variance for the proposal in the \eqn{N(0,\sigma^2_\phi)} posterior estimate of \eqn{\delta}.
+\item \code{prior_delta_c} parameter of the shifted Gamma prior of \eqn{\delta}.
+\item \code{prior_delta_d} parameter of the shifted Gamma prior of \eqn{\delta}.
 }
 
 If the time series is multivariate the following must be specified:
 
 \itemize{
 \item \code{m_0}, \code{k_0}, \code{nu_0}, \code{S_0} parameters for the Normal-Inverse-Wishart prior for \eqn{(\mu,\lambda)}.
-\item \code{prior_var_phi} variance for the proposal in the \eqn{N(0,\sigma^2_\phi)} posterior estimate of \eqn{\theta}.
-\item \code{par_theta_c} parameter of the shifted Gamma prior of \eqn{\theta}.
-\item \code{par_theta_d} parameter of the shifted Gamma prior of \eqn{\theta}.
+\item \code{prior_var_phi} variance for the proposal in the \eqn{N(0,\sigma^2_\phi)} posterior estimate of \eqn{\delta}.
+\item \code{prior_delta_c} parameter of the shifted Gamma prior of \eqn{\delta}.
+\item \code{prior_delta_d} parameter of the shifted Gamma prior of \eqn{\delta}.
 }
 
-If data are survival functions:
+If data are epidemic diffusions:
 
 \itemize{
-\item \code{M} number of Monte Carlo iterations when computing the likelihood of the survival function.
+\item \code{M} number of Monte Carlo iterations when computing the likelihood of the epidemic diffusion.
 \item \code{xi} recovery rate fixed constant for each population at each time.
-\item \code{a0},\code{b0} parameters for the computation of the integrated likelihood of the survival functions.
+\item \code{a0},\code{b0} parameters for the computation of the integrated likelihood of the epidemic diffusions.
 \item \code{I0_var} variance for the Metropolis-Hastings estimation of the proportion of infected at time 0.
-\item \code{p} prior average number of change points for each order.
 }}
 
-\item{kernel}{can be "ts" if data are time series or "epi" if data are survival functions.}
+\item{kernel}{can be "ts" if data are time series or "epi" if data are epidemic diffusions.}
 
 \item{print_progress}{If TRUE (default) print the progress bar.}
 
@@ -71,15 +68,15 @@ A \code{DetectCpObj} class object containing
 \item \code{$n_burnin} number of burn-in iterations.
 \item \code{$orders} matrix where each entries is the assignment of the realization to a block. Rows are the iterations and columns the times.
 \item \code{$time} computational time.
-\item \code{$gammaMCMC} traceplot for \eqn{\gamma}.
+\item \code{$phi_MCMC} traceplot for \eqn{\gamma}.
 \item \code{$phi_MCMC_01} a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{\gamma} was accepted, \eqn{0} otherwise.
 \item \code{$sigma_MCMC} traceplot for \eqn{\sigma}.
 \item \code{$sigma_MCMC_01} a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{\sigma} was accepted, \eqn{0} otherwise.
-\item \code{$theta_MCMC} traceplot for \eqn{\theta}.
+\item \code{$delta_MCMC} traceplot for \eqn{\delta}.
 \item \code{I0_MCMC} traceplot for \eqn{I_0}.
 \item \code{I0_MCMC_01} a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{I_0} was accepted, \eqn{0} otherwise.
 \item \code{kernel_ts} if TRUE data are time series.
-\item \code{kernel_epi} if TRUE data are survival functions.
+\item \code{kernel_epi} if TRUE data are epidemic diffusions.
 \item \code{$univariate_ts} TRUE if data is an univariate time series, FALSE if it is a multivariate time series.
 }
 }
@@ -112,9 +109,9 @@ out <- detect_cp(data = data_mat, n_iterations = 2500, n_burnin = 500,
 print(out)
 
 \donttest{
-## Survival functions
+## Epidemic diffusions
 
-data_mat <- matrix(NA, nrow = 1, ncol = 100)
+data_mat <- matrix(NA, nrow = 100, ncol = 1)
 
 betas <- c(rep(0.45, 25),rep(0.14,75))
 
@@ -129,7 +126,7 @@ for(j in 1:100){
  }
 }
 
-data_mat[1,] <- inf_times_vec
+data_mat[,1] <- inf_times_vec
 
 out <- detect_cp(data = data_mat, n_iterations = 500, n_burnin = 100,
                  params = list(M = 250, xi = 1/8, a0 = 40, b0 = 10), kernel = "epi")

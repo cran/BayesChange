@@ -5,14 +5,12 @@
 #' @description The \code{detect_cp} function detect change points on univariate and multivariate time series.
 #'
 #'
-#' @param data a vector or a matrix. If a vector the algorithm for
-#' univariate time series is used. If a matrix, where rows are the observations
-#' and columns are the times, then the algorithm for multivariate time series is used.
+#' @param data if kernel = "ts" a vector or a matrix. If kernel = "epi" a matrix.
 #'
 #' @param n_iterations number of MCMC iterations.
 #' @param n_burnin number of iterations that must be excluded when computing the posterior estimate.
 #' @param q probability of performing a split at each iteration.
-#' @param kernel can be "ts" if data are time series or "epi" if data are survival functions.
+#' @param kernel can be "ts" if data are time series or "epi" if data are epidemic diffusions.
 #' @param print_progress If TRUE (default) print the progress bar.
 #' @param user_seed seed for random distribution generation.
 #'
@@ -23,28 +21,27 @@
 #'
 #' \itemize{
 #'   \item \code{a}, \code{b}, \code{c} parameters of the Normal-Gamma prior for \eqn{\mu} and \eqn{\lambda}.
-#'   \item \code{prior_var_phi} variance for the proposal in the \eqn{N(0,\sigma^2_\phi)} posterior estimate of \eqn{\theta}.
-#'   \item \code{par_theta_c} parameter of the shifted Gamma prior of \eqn{\theta}.
-#'   \item \code{par_theta_d} parameter of the shifted Gamma prior of \eqn{\theta}.
+#'   \item \code{prior_var_phi} variance for the proposal in the \eqn{N(0,\sigma^2_\phi)} posterior estimate of \eqn{\delta}.
+#'   \item \code{prior_delta_c} parameter of the shifted Gamma prior of \eqn{\delta}.
+#'   \item \code{prior_delta_d} parameter of the shifted Gamma prior of \eqn{\delta}.
 #' }
 #'
 #' If the time series is multivariate the following must be specified:
 #'
 #' \itemize{
 #'   \item \code{m_0}, \code{k_0}, \code{nu_0}, \code{S_0} parameters for the Normal-Inverse-Wishart prior for \eqn{(\mu,\lambda)}.
-#'   \item \code{prior_var_phi} variance for the proposal in the \eqn{N(0,\sigma^2_\phi)} posterior estimate of \eqn{\theta}.
-#'   \item \code{par_theta_c} parameter of the shifted Gamma prior of \eqn{\theta}.
-#'   \item \code{par_theta_d} parameter of the shifted Gamma prior of \eqn{\theta}.
+#'   \item \code{prior_var_phi} variance for the proposal in the \eqn{N(0,\sigma^2_\phi)} posterior estimate of \eqn{\delta}.
+#'   \item \code{prior_delta_c} parameter of the shifted Gamma prior of \eqn{\delta}.
+#'   \item \code{prior_delta_d} parameter of the shifted Gamma prior of \eqn{\delta}.
 #' }
 #'
-#' If data are survival functions:
+#' If data are epidemic diffusions:
 #'
 #' \itemize{
-#'   \item \code{M} number of Monte Carlo iterations when computing the likelihood of the survival function.
+#'   \item \code{M} number of Monte Carlo iterations when computing the likelihood of the epidemic diffusion.
 #'   \item \code{xi} recovery rate fixed constant for each population at each time.
-#'   \item \code{a0},\code{b0} parameters for the computation of the integrated likelihood of the survival functions.
+#'   \item \code{a0},\code{b0} parameters for the computation of the integrated likelihood of the epidemic diffusions.
 #'   \item \code{I0_var} variance for the Metropolis-Hastings estimation of the proportion of infected at time 0.
-#'   \item \code{p} prior average number of change points for each order.
 #' }
 #'
 #' @return A \code{DetectCpObj} class object containing
@@ -55,15 +52,15 @@
 #'   \item \code{$n_burnin} number of burn-in iterations.
 #'   \item \code{$orders} matrix where each entries is the assignment of the realization to a block. Rows are the iterations and columns the times.
 #'   \item \code{$time} computational time.
-#'   \item \code{$gammaMCMC} traceplot for \eqn{\gamma}.
+#'   \item \code{$phi_MCMC} traceplot for \eqn{\gamma}.
 #'   \item \code{$phi_MCMC_01} a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{\gamma} was accepted, \eqn{0} otherwise.
 #'   \item \code{$sigma_MCMC} traceplot for \eqn{\sigma}.
 #'   \item \code{$sigma_MCMC_01} a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{\sigma} was accepted, \eqn{0} otherwise.
-#'   \item \code{$theta_MCMC} traceplot for \eqn{\theta}.
+#'   \item \code{$delta_MCMC} traceplot for \eqn{\delta}.
 #'   \item \code{I0_MCMC} traceplot for \eqn{I_0}.
 #'   \item \code{I0_MCMC_01} a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{I_0} was accepted, \eqn{0} otherwise.
 #'   \item \code{kernel_ts} if TRUE data are time series.
-#'   \item \code{kernel_epi} if TRUE data are survival functions.
+#'   \item \code{kernel_epi} if TRUE data are epidemic diffusions.
 #'   \item \code{$univariate_ts} TRUE if data is an univariate time series, FALSE if it is a multivariate time series.
 #' }
 #'
@@ -93,9 +90,9 @@
 #' print(out)
 #'
 #' \donttest{
-#' ## Survival functions
+#' ## Epidemic diffusions
 #'
-#' data_mat <- matrix(NA, nrow = 1, ncol = 100)
+#' data_mat <- matrix(NA, nrow = 100, ncol = 1)
 #'
 #' betas <- c(rep(0.45, 25),rep(0.14,75))
 #'
@@ -110,7 +107,7 @@
 #'  }
 #' }
 #'
-#' data_mat[1,] <- inf_times_vec
+#' data_mat[,1] <- inf_times_vec
 #'
 #' out <- detect_cp(data = data_mat, n_iterations = 500, n_burnin = 100,
 #'                  params = list(M = 250, xi = 1/8, a0 = 40, b0 = 10), kernel = "epi")
@@ -153,8 +150,8 @@ detect_cp <- function(data,
       if(!(is.null(params$c)) && (params$c < 0)) stop("params$c must be positive")
       if((!is.null(params$params) && !is.list(params))) stop("params must be a list")
       if((!is.null(params$prior_var_phi)) && (params$prior_var_phi <= 0)) stop("prior_var_phi must be positive")
-      if(!is.null(params$par_theta_c) && (params$par_theta_c < 0)) stop("par_theta_c must be positive")
-      if(!is.null(params$par_theta_d) && (params$par_theta_d < 0)) stop("par_theta_d must be positive")
+      if(!is.null(params$prior_delta_c) && (params$prior_delta_c < 0)) stop("prior_delta_c must be positive")
+      if(!is.null(params$prior_delta_d) && (params$prior_delta_d < 0)) stop("prior_delta_d must be positive")
 
       data_input = data
       n_iterations_input = n_iterations
@@ -168,8 +165,8 @@ detect_cp <- function(data,
       b_input = ifelse(is.null(params$b), 1, params$b)
       c_input = ifelse(is.null(params$c), 0.1, params$c)
       prior_var_phi_input = ifelse(is.null(params$prior_var_phi), 0.1, params$prior_var_phi)
-      par_theta_c_input = ifelse(is.null(params$par_theta_c), 1, params$par_theta_c)
-      par_theta_d_input = ifelse(is.null(params$par_theta_d), 1, params$par_theta_d)
+      prior_delta_c_input = ifelse(is.null(params$prior_delta_c), 1, params$prior_delta_c)
+      prior_delta_d_input = ifelse(is.null(params$prior_delta_d), 1, params$prior_delta_d)
       #
 
       out <- detect_cp_uni(data = data_input,
@@ -179,8 +176,8 @@ detect_cp <- function(data,
                            b = b_input,
                            c = c_input,
                            prior_var_phi = prior_var_phi_input,
-                           par_theta_c = par_theta_c_input,
-                           par_theta_d = par_theta_d_input,
+                           prior_delta_c = prior_delta_c_input,
+                           prior_delta_d = prior_delta_d_input,
                            print_progress = print_progress_input,
                            user_seed = user_seed_input)
 
@@ -195,7 +192,7 @@ detect_cp <- function(data,
                             phi_MCMC_01 = out$phi_MCMC_01,
                             sigma_MCMC = out$sigma_MCMC,
                             sigma_MCMC_01 = out$sigma_MCMC_01,
-                            theta_MCMC = out$theta_MCMC,
+                            delta_MCMC = out$delta_MCMC,
                             kernel_ts = TRUE,
                             kernel_epi = FALSE,
                             univariate_ts = TRUE)
@@ -215,8 +212,8 @@ detect_cp <- function(data,
       nu_0_input = ifelse(is.null(params$nu_0), nrow(data)+1, params$nu_0)
       if(is.null(params$S_0)){S_0_input = diag(0.1, nrow(data), nrow(data))} else{S_0_input = params$S_0}
       prior_var_phi_input = ifelse(is.null(params$prior_var_phi), 0.1, params$prior_var_phi)
-      par_theta_c_input = ifelse(is.null(params$par_theta_c), 1, params$par_theta_c)
-      par_theta_d_input = ifelse(is.null(params$par_theta_d), 1, params$par_theta_d)
+      prior_delta_c_input = ifelse(is.null(params$prior_delta_c), 1, params$prior_delta_c)
+      prior_delta_d_input = ifelse(is.null(params$prior_delta_d), 1, params$prior_delta_d)
       #
 
       data_input = data
@@ -233,8 +230,8 @@ detect_cp <- function(data,
                              k_0 = k_0_input,
                              nu_0 = nu_0_input,
                              S_0 = S_0_input,
-                             par_theta_c = par_theta_c_input,
-                             par_theta_d = par_theta_d_input,
+                             prior_delta_c = prior_delta_c_input,
+                             prior_delta_d = prior_delta_d_input,
                              prior_var_phi = prior_var_phi_input,
                              print_progress = print_progress_input,
                              user_seed = user_seed_input)
@@ -250,7 +247,7 @@ detect_cp <- function(data,
                             phi_MCMC_01 = out$phi_MCMC_01,
                             sigma_MCMC = out$sigma_MCMC,
                             sigma_MCMC_01 = out$sigma_MCMC_01,
-                            theta_MCMC = out$theta_MCMC,
+                            delta_MCMC = out$delta_MCMC,
                             kernel_ts = TRUE,
                             kernel_epi = FALSE,
                             univariate_ts = FALSE)

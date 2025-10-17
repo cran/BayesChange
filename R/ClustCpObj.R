@@ -8,12 +8,12 @@
 #' @param clust a matrix with the clustering of each iteration.
 #' @param orders a matrix where each row corresponds to the output order of the corresponding iteration;
 #' @param time computational time in seconds;
-#' @param lkl a vector with the likelihood of the final clustering.
+#' @param lkl a vector with the likelihood of the final partition
 #' @param norm_vec a vector with the estimated normalization constant.
 #' @param I0_MCMC traceplot for \eqn{I_0}.
 #' @param I0_MCMC_01 a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{I_0} was accepted, \eqn{0} otherwise.
 #' @param kernel_ts if TRUE data are time series.
-#' @param kernel_epi if TRUE data are survival functions.
+#' @param kernel_epi if TRUE data are epidemic diffusions.
 #' @param univariate_ts TRUE/FALSE if time series is univariate or not;
 #'
 #'
@@ -84,7 +84,7 @@ print.ClustCpObj <- function(x, ...) {
       cat("Type: clustering multivariate time series with common change points")
     }
   } else if(x$kernel_epi){
-    cat("Type: clustering survival functions with common change points")
+    cat("Type: clustering epidemic diffusions with common change points")
   }
 }
 
@@ -129,7 +129,7 @@ summary.ClustCpObj <- function(object, ...) {
     }
   } else if (object$kernel_epi){
 
-    cat("Clustering survival functions:\n",
+    cat("Clustering epidemic diffusions:\n",
         "Number of burn-in iterations:", object$n_burnin, "\n",
         "Number of MCMC iterations:", object$n_iterations - object$n_burnin, "\n",
         "Computational time:", round(object$time, digits = 2), "seconds\n")
@@ -269,7 +269,7 @@ posterior_estimate.ClustCpObj <- function(object,
 #'
 #' @return
 #'
-#' The function returns a ggplot object representing the time series or the survival functions colored according to the final partition.
+#' The function returns a ggplot object representing the time series or the epidemic diffusions colored according to the final partition.
 #'
 #' @examples
 #'
@@ -290,7 +290,7 @@ posterior_estimate.ClustCpObj <- function(object,
 #' plot(out)
 #'
 #'
-#' ## Survival functions
+#' ## Epidemic diffusions
 #'
 #' data_mat <- matrix(NA, nrow = 5, ncol = 50)
 #'
