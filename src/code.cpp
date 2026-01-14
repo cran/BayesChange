@@ -15,6 +15,32 @@ using namespace RcppGSL;
 // UTILS
 //--------
 
+double compute_entropy_partition(const arma::vec &partition_temp) {
+
+  int n = partition_temp.n_elem;
+  if (n == 0) return 0.0;
+
+  // Count cluster frequencies
+  std::unordered_map<double, int> counts;
+  counts.reserve(n);
+
+  for (int i = 0; i < n; i++) {
+    counts[partition_temp[i]]++;
+  }
+
+  // Compute entropy
+  double entropy = 0.0;
+  for (auto &kv : counts) {
+    double p = (double) kv.second / n;
+    entropy -= p * std::log(p);
+  }
+
+  return entropy;
+}
+
+
+
+
 int which_min_cpp(arma::vec x) {
   int n = x.size();
   int min_index = 0; // 0-based index
@@ -121,6 +147,8 @@ int rint(arma::vec freqs){
 }
 
 arma::vec table_cpp(arma::vec vector){
+  vector = arma::round(vector);
+
   double k = max(vector) + 1.0;
   arma::vec table(k);
 
@@ -418,7 +446,6 @@ double LogLikelihood_TS(arma::mat data, arma::mat order,
   return(sum(lkl));
 }
 
-
 double Likelihood_MultiTS(arma::mat data, arma::vec order,
                           double gamma, double k_0, double nu_0,
                           arma::mat S_0, arma::vec m_0){
@@ -480,8 +507,7 @@ double Likelihood_MultiTS(arma::mat data, arma::vec order,
 
     }
 
-    vec_likelihood(j) = log(pow(k_n,(-d/2))) - log(std::pow(k_0,(-d/2))) + (nu_0/2) * log(arma::det(S_0)) + lgamma_multi(d, (nu_n/2)) - (nu_n/2)*log(arma::det(phi_n)) - lgamma_multi(d,(nu_0/2)) + log(std::pow(M_PI,(-n_i*d/2))) - log(pow((1-pow(gamma,2)),((n_i-1)/2)));
-
+    vec_likelihood(j) = log(pow(k_n,(-d/2))) - log(std::pow(k_0,(-d/2))) + (nu_0/2) * log(arma::det(S_0)) + lgamma_multi(d, (nu_n/2)) - (nu_n/2)*log(arma::det(phi_n)) - lgamma_multi(d,(nu_0/2)) + -(n_i * d / 2.0) * log(M_PI) - log(pow((1-pow(gamma,2)),((n_i-1)/2)));
   }
 
   return sum(vec_likelihood);
@@ -1363,8 +1389,10 @@ arma::vec norm_constant_uni(arma::mat data,
   int T = data.n_cols;
   double ord_lprob;
 
-  int start_s = clock();
-  int current_s;
+  //int start_s = clock();
+  clock_t start_s = clock();
+  //int current_s = start_s;
+  clock_t current_s = start_s;
   int nupd = round(R / 10);
   for(int r = 0; r < R; r++){
 
@@ -1441,8 +1469,10 @@ arma::vec norm_constant_multi(arma::cube data,
   int T = data.slice(0).n_cols;
   double ord_lprob;
 
-  int start_s = clock();
-  int current_s;
+  //int start_s = clock();
+  clock_t start_s = clock();
+  //int current_s = start_s;
+  clock_t current_s = start_s;
   int nupd = round(R / 10);
   for(int r = 0; r < R; r++){
 
@@ -1518,8 +1548,10 @@ arma::vec norm_constant_epi(arma::mat data,
   int T = data.n_cols;
   double ord_lprob;
 
-  int start_s = clock();
-  int current_s;
+  //int start_s = clock();
+  clock_t start_s = clock();
+  //int current_s = start_s;
+  clock_t current_s = start_s;
   int nupd = round(num_orders / 10);
   for(int r_iter = 0; r_iter < num_orders; r_iter++){
 
@@ -1651,10 +1683,9 @@ double FullConditionalSigma(arma::vec order, double delta, double sigma,
 void UpdatePhi(double phi_old, arma::mat data, arma::vec order,
                  double delta, double sigma, double k_0, double nu_0,
                  arma::mat S_0, arma::vec m_0,
-                 arma::vec &phi_inf, arma::vec &phi_inf_10, gsl_rng *r, double prior_var_phi){
+                 arma::vec &phi_inf, gsl_rng *r, double prior_var_phi){
 
   phi_inf.resize(phi_inf.n_elem + 1);
-  phi_inf_10.resize(phi_inf_10.n_elem + 1);
 
 
   double tau = log(phi_old/(1-phi_old));
@@ -1673,29 +1704,24 @@ void UpdatePhi(double phi_old, arma::mat data, arma::vec order,
 
   if(log(arma::randu()) <= my_min(alpha_MH,log(1))){
     phi_inf(phi_inf.n_elem - 1) = phi_new;
-    phi_inf_10(phi_inf_10.n_elem - 1) = 1;
   } else {
     phi_inf(phi_inf.n_elem - 1) = phi_old;
-    phi_inf_10(phi_inf_10.n_elem - 1) = 0;
   }
 
 }
 
 void UpdateSigma(arma::vec order, double delta, double sigma,
-                 arma::vec &sigma_inf, arma::vec &sigma_inf_10, gsl_rng *r){
+                 arma::vec &sigma_inf, gsl_rng *r){
 
   sigma_inf.resize(sigma_inf.n_elem + 1);
-  sigma_inf_10.resize(sigma_inf_10.n_elem + 1);
 
   double sigma_new = gsl_ran_beta(r, 1, 1);
   double alpha_MH = FullConditionalSigma(order, delta, sigma_new, 1, 1, 1, 1) - FullConditionalSigma(order, delta, sigma, 1, 1, 1, 1);
 
   if(log(arma::randu()) <= my_min(alpha_MH,log(1))){
     sigma_inf(sigma_inf.n_elem - 1) = sigma_new;
-    sigma_inf_10(sigma_inf_10.n_elem - 1) = 1;
   } else {
     sigma_inf(sigma_inf.n_elem - 1) = sigma;
-    sigma_inf_10(sigma_inf_10.n_elem - 1) = 0;
   }
 
 }
@@ -1740,7 +1766,6 @@ void UpdateDelta(double delta,double sigma, arma::vec order,  arma::vec &delta_i
 
 void update_I0(arma::mat data,
                 arma::vec &rho,
-                arma::vec &rho01,
                 double a0,
                 double b0,
                 double c0,
@@ -1754,8 +1779,6 @@ void update_I0(arma::mat data,
                 arma::vec &llik,
                 arma::vec clust,
                 arma::mat orders){
-
-  rho01.fill(0);
 
   for(arma::uword i = 0; i < data.n_rows; i++){
 
@@ -1779,7 +1802,6 @@ void update_I0(arma::mat data,
 
     if(log(arma::randu()) < acc_rate){
       rho(i) = rho_new;
-      rho01(i) = 1;
       llik(i) = new_llik;
     }
   }
@@ -1789,8 +1811,8 @@ void update_I0(arma::mat data,
 // FUNCTIONS FOR CLUSTERING EPI DATA
 //------------------------------------
 
-void update_single_order(arma::mat data,
-                         arma::vec clust,
+void update_single_order(const arma::mat& data,
+                         const arma::vec& clust,
                          int clust_id,
                          arma::mat &orders,
                          arma::vec &llik,
@@ -1799,151 +1821,233 @@ void update_single_order(arma::mat data,
                          double a0,
                          double b0,
                          double gamma,
-                         arma::vec rho,
+                         const arma::vec& rho,
                          int M,
                          double S0 = 1,
                          double R0 = 0){
 
-  int k = max(orders.row(clust_id)) + 1, temp_id, temp_obs,
-    T = orders.n_cols, bound = 0, temp_count;
-  arma::vec temp_llik = llik, temp_prob, new_order, freq_temp;
-  arma::mat curve_mat;
-  bool check;
-  double u = arma::randu(), acc_rate;
+  // dimensions
+  const int T = orders.n_cols;
+  //const arma::uword N = clust.n_elem;
 
-  if(k == 1 || (u < q && k < T)){
-    check = true;
-  } else {
-    check = false;
-  }
+  // Preallocate temporaries once per call
+  arma::vec temp_llik = llik;        // copy of current llik to try changes
+  arma::rowvec order_row = orders.row(clust_id); // work on a row (no transpose needed)
+  arma::rowvec new_order_row = order_row;       // proposed order (rowvec)
+  arma::vec freq_temp;               // frequency of blocks
+  arma::uvec obs_idx;                // indices of observations in this cluster
+  arma::mat curve_mat;               // reuse for curve computations
 
-  if(check == true){
+  // find current number of blocks k in this cluster
+  int k = static_cast<int>(arma::max(order_row)) + 1;
 
-    freq_temp.resize(k);
-    for(arma::uword l = 0; l < freq_temp.n_elem; l++){
-      if(std::count(orders.row(clust_id).begin(), orders.row(clust_id).end(), l) > 1){
-        freq_temp(l) = 1;
-      } else {
-        freq_temp(l) = 0;
-      }
+  // sample decision for split (true) vs merge (false)
+  double u = arma::randu();
+  bool do_split;
+  if (k == 1 || (u < q && k < T)) do_split = true;
+  else do_split = false;
+
+  // precompute indices of observations in this cluster (only loop these)
+  obs_idx = arma::find(clust == clust_id);
+  // If no observations in cluster, nothing to update
+  if (obs_idx.n_elem == 0) return;
+
+  // Helper lambda: sample a single element index uniformly from an uvec of indices
+  auto sample_from_uvec = [&](const arma::uvec& v)->int{
+    if (v.n_elem == 0) return -1;
+    arma::uword pick = static_cast<arma::uword>(std::floor(arma::randu() * v.n_elem));
+    if (pick >= v.n_elem) pick = v.n_elem - 1;
+    return static_cast<int>(v(pick));
+  };
+
+  if (do_split){
+    // --- SPLIT proposal: choose a block with multiplicity >1 then split one of its members outwards ---
+
+    // compute block frequencies (0..k-1)
+    freq_temp.zeros(k);
+    for (int t = 0; t < T; ++t){
+      arma::uword b = static_cast<arma::uword>(order_row(t));
+      if (b < freq_temp.n_elem) freq_temp(b) += 1.0;
     }
 
-    temp_id = rint(freq_temp);
-    temp_prob.resize(T);
-    temp_prob.fill(0.0);
-    for(int i = 0; i < T; i++){
-      if(orders(clust_id,i) == temp_id){
-        temp_prob(i) += 1.0;
-        bound = i;
-      }
-    }
-    temp_prob(bound) = 0.0;
-    temp_obs = rint(temp_prob);
-    new_order = orders.row(clust_id).t();
-    for(int i = temp_obs + 1; i < T; i++){
-      new_order(i) += 1;
-    }
-
-    for(arma::uword i = 0; i < clust.n_elem; i++){
-      if(clust(i) == clust_id){
-        curve_mat = integrated_curves_mat(dt, new_order, a0, b0, gamma, rho(i), M, S0 = 1, R0 = 0);
-        temp_llik(i) = log_sum_exp(curve_mat.cols(0,T-1) * data.row(i).t() - curve_mat.col(T)) - log(M);
-      }
-    }
-
-    if(k == 1){
-      acc_rate = my_min(0, log(1 - q) - log(q) + sum(temp_llik) - sum(llik) +
-        log(sum(freq_temp)) + log(std::count(orders.row(clust_id).begin(), orders.row(clust_id).end(), temp_id)) - log(k));
+    // get blocks with freq > 1
+    arma::uvec multi_blocks = arma::find(freq_temp > 1.0);
+    if (multi_blocks.n_elem == 0){
+      // nothing to split; skip to end
     } else {
-      acc_rate = my_min(0, log(1 - q) + log(T - 1) + sum(temp_llik) - sum(llik));
-    }
+      // choose block id uniformly among multi_blocks
+      int temp_id = sample_from_uvec(multi_blocks);
+      if (temp_id >= 0){
+        // gather positions (time indices) in that block
+        arma::uvec pos = arma::find(order_row == temp_id);
+        if (pos.n_elem == 0){
+          // unexpected, do nothing
+        } else {
+          // choose a position to split out, but exclude the last occurrence (bound) per original code
+          arma::uword bound = pos.max(); // original code tracked 'bound' as last occurrence
+          // create vector of candidate positions excluding bound
+          arma::uvec cand = arma::find(order_row == temp_id);
+          // remove bound from cand
+          arma::uvec cand_no_bound;
+          if (cand.n_elem > 1){
+            cand_no_bound.set_size(cand.n_elem - 1);
+            arma::uword idxc = 0;
+            for (arma::uword ii = 0; ii < cand.n_elem; ++ii){
+              if (cand(ii) != bound){
+                cand_no_bound(idxc++) = cand(ii);
+              }
+            }
+            cand_no_bound.resize(idxc);
+          } else {
+            cand_no_bound.reset(); // empty
+          }
 
-    u = arma::randu();
-    if(u <= exp(acc_rate)){
-      orders.row(clust_id) = new_order.t();
-      llik = temp_llik;
+          if (cand_no_bound.n_elem > 0){
+            int temp_obs = sample_from_uvec(cand_no_bound); // index in 0..T-1
+            if (temp_obs >= 0){
+              // form new_order: increment labels after temp_obs
+              new_order_row = order_row;
+              for (int ii = temp_obs + 1; ii < T; ++ii){
+                new_order_row(ii) = new_order_row(ii) + 1.0;
+              }
+
+              // compute proposed llik only for observations in this cluster
+              for (arma::uword idx = 0; idx < obs_idx.n_elem; ++idx){
+                arma::uword i = obs_idx(idx);
+                // compute curve_mat for observation i with new_order_row
+                curve_mat = integrated_curves_mat(dt, new_order_row.t(), a0, b0, gamma, rho(i), M, S0, R0);
+                temp_llik(i) = log_sum_exp(curve_mat.cols(0, T-1) * data.row(i).t() - curve_mat.col(T)) - std::log((double)M);
+              }
+
+              // compute acceptance ratio
+              double acc_rate;
+              if (k == 1){
+                // need counts: sum(freq_temp) == T, but we follow original formula
+                double sum_freq = arma::sum(freq_temp);
+                double cnt_block_members = static_cast<double>( std::count(order_row.begin(), order_row.end(), temp_id) ); // still cheap: T small-ish
+                acc_rate = my_min(0.0, std::log(1.0 - q) - std::log(q) + arma::sum(temp_llik) - arma::sum(llik) +
+                  std::log(sum_freq) + std::log(cnt_block_members) - std::log((double)k));
+              } else {
+                acc_rate = my_min(0.0, std::log(1.0 - q) + std::log((double)(T - 1)) + arma::sum(temp_llik) - arma::sum(llik));
+              }
+
+              if (arma::randu() <= std::exp(acc_rate)){
+                // accept
+                orders.row(clust_id) = new_order_row;
+                llik = temp_llik;
+              }
+            }
+          }
+        }
+      }
     }
 
   } else {
+    // --- MERGE proposal: choose a block id < k-1 uniformly and merge labels > temp_id downward ---
 
-    freq_temp.resize(k - 1);
-    freq_temp.fill(1.0);
-    temp_id = rint(freq_temp);
-    new_order = orders.row(clust_id).t();
-    for(int i = 0; i < T; i++){
-      if(orders(clust_id, i) > temp_id){
-        new_order(i) -= 1;
-      }
-    }
-
-    for(arma::uword i = 0; i < clust.n_elem; i++){
-      if(clust(i) == clust_id){
-        curve_mat = integrated_curves_mat(dt, new_order, a0, b0, gamma, rho(i), M, S0 = 1, R0 = 0);
-        temp_llik(i) = log_sum_exp(curve_mat.cols(0,T-1) * data.row(i).t() - curve_mat.col(T)) - log(M);
-
-      }
-    }
-
-    temp_count = 0;
-    for(int i = 0; i < k - 1; i++){
-      if(std::count(orders.row(clust_id).begin(),orders.row(clust_id).end(), i) > 1){
-        temp_count += 1;
-      }
-    }
-
-    if(k == 1){
-      acc_rate = my_min(0, log(q) - log(1 - q) + sum(temp_llik) - sum(llik) +
-        log(k - 1) - log(temp_count) - log(std::count(new_order.begin(), new_order.end(), temp_id) - 1));
+    if (k <= 1){
+      // nothing to merge
     } else {
-      acc_rate = my_min(0, log(q) + log(T - 1) + sum(temp_llik) - sum(llik));
-    }
+      // candidate block ids are 0..k-2
+      arma::uvec blocks = arma::regspace<arma::uvec>(0, (arma::uword)k - 2);
+      int temp_id = sample_from_uvec(blocks);
+      if (temp_id >= 0){
+        // proposed new_order: decrement labels greater than temp_id
+        new_order_row = order_row;
+        for (int ii = 0; ii < T; ++ii){
+          if (new_order_row(ii) > temp_id) new_order_row(ii) = new_order_row(ii) - 1.0;
+        }
 
-    u = arma::randu();
-    if(u <= exp(acc_rate)){
-      orders.row(clust_id) = new_order.t();
-      llik = temp_llik;
+        // compute temp_llik only for obs in this cluster
+        for (arma::uword idx = 0; idx < obs_idx.n_elem; ++idx){
+          arma::uword i = obs_idx(idx);
+          curve_mat = integrated_curves_mat(dt, new_order_row.t(), a0, b0, gamma, rho(i), M, S0, R0);
+          temp_llik(i) = log_sum_exp(curve_mat.cols(0, T-1) * data.row(i).t() - curve_mat.col(T)) - std::log((double)M);
+        }
+
+        // compute temp_count = number of blocks with multiplicity > 1 (before merge)
+        int temp_count = 0;
+        for (int bi = 0; bi < k - 1; ++bi){
+          arma::uword cnt = static_cast<arma::uword>( std::count(order_row.begin(), order_row.end(), bi) );
+          if (cnt > 1) temp_count += 1;
+        }
+
+        double acc_rate;
+        if (k == 1){
+          // improbable branch (k==1 shouldn't be here), keep original formula
+          acc_rate = my_min(0.0, std::log(q) - std::log(1.0 - q) + arma::sum(temp_llik) - arma::sum(llik) +
+            std::log(k - 1.0) - std::log((double)temp_count) - std::log((double)(std::count(new_order_row.begin(), new_order_row.end(), temp_id) - 1)));
+        } else {
+          acc_rate = my_min(0.0, std::log(q) + std::log((double)(T - 1)) + arma::sum(temp_llik) - arma::sum(llik));
+        }
+
+        if (arma::randu() <= std::exp(acc_rate)){
+          orders.row(clust_id) = new_order_row;
+          llik = temp_llik;
+        }
+      }
     }
   }
 
-  k = max(orders.row(clust_id)) + 1;
-  if(k > 1){
-    freq_temp.resize(k - 1);
-    freq_temp.fill(1.0);
-    temp_id = rint(freq_temp);
+  // --- Third move: adjacent-block relabeling (as in original code) ---
+  // recompute k
+  order_row = orders.row(clust_id);
+  k = static_cast<int>(arma::max(order_row)) + 1;
+  if (k > 1){
+    // choose temp_id in 0..k-2
+    arma::uvec blocks2 = arma::regspace<arma::uvec>(0, (arma::uword)k - 2);
+    if (blocks2.n_elem > 0){
+      int temp_id = sample_from_uvec(blocks2);
+      if (temp_id >= 0){
+        // build temp_prob: positions where order == temp_id or temp_id+1
+        arma::uvec pos = arma::find( (order_row == temp_id) || (order_row == (temp_id + 1)) );
+        if (pos.n_elem > 0){
+          // pick a time index to be the split point (exclude last occurrence)
+          arma::uword bound = pos.max();
+          // build candidates excluding bound
+          arma::uvec cand;
+          if (pos.n_elem > 1){
+            cand.set_size(pos.n_elem - 1);
+            arma::uword idxc = 0;
+            for (arma::uword ii = 0; ii < pos.n_elem; ++ii){
+              if (pos(ii) != bound) cand(idxc++) = pos(ii);
+            }
+            cand.resize(idxc);
+          } else {
+            cand.reset();
+          }
 
-    temp_prob.resize(T);
-    temp_prob.fill(0.0);
-    for(int i = 0; i < T; i++){
-      if(orders(clust_id,i) == temp_id || orders(clust_id,i) == temp_id + 1){
-        temp_prob(i) += 1.0;
-        bound = i;
+          if (cand.n_elem > 0){
+            int temp_obs = sample_from_uvec(cand);
+            if (temp_obs >= 0){
+              new_order_row = order_row;
+              for (int ii = temp_obs + 1; ii < T; ++ii){
+                if (new_order_row(ii) == temp_id || new_order_row(ii) == (temp_id + 1)){
+                  new_order_row(ii) = temp_id + 1;
+                }
+              }
+
+              // compute temp_llik for affected cluster observations only
+              for (arma::uword idx = 0; idx < obs_idx.n_elem; ++idx){
+                arma::uword i = obs_idx(idx);
+                curve_mat = integrated_curves_mat(dt, new_order_row.t(), a0, b0, gamma, rho(i), M, S0, R0);
+                temp_llik(i) = log_sum_exp(curve_mat.cols(0, T-1) * data.row(i).t() - curve_mat.col(T)) - std::log((double)M);
+              }
+
+              double acc_rate = my_min(0.0, arma::sum(temp_llik) - arma::sum(llik));
+              if (arma::randu() <= std::exp(acc_rate)){
+                orders.row(clust_id) = new_order_row;
+                llik = temp_llik;
+              }
+            }
+          }
+        }
       }
-    }
-    temp_prob(bound) = 0.0;
-    temp_obs = rint(temp_prob);
-    new_order = orders.row(clust_id).t();
-    for(int i = temp_obs + 1; i < T; i++){
-      if(new_order(i) == temp_id || new_order(i) == temp_id + 1){
-        new_order(i) = temp_id + 1;
-      }
-    }
-
-    for(arma::uword i = 0; i < clust.n_elem; i++){
-      if(clust(i) == clust_id){
-        curve_mat = integrated_curves_mat(dt, new_order, a0, b0, gamma, rho(i), M, S0, R0);
-        temp_llik(i) = log_sum_exp(curve_mat.cols(0,T-1) * data.row(i).t() - curve_mat.col(T)) - log(M);
-      }
-    }
-
-    acc_rate = my_min(0, sum(temp_llik) - sum(llik));
-
-    u = arma::randu();
-    if(u <= exp(acc_rate)){
-      orders.row(clust_id) = new_order.t();
-      llik = temp_llik;
     }
   }
-}
+
+} // end function
+
 
 void update_partition(arma::mat data,
                       arma::vec &clust,
@@ -2072,12 +2176,15 @@ void update_partition(arma::mat data,
     sum3vec(0) = log(1);
     sum3vec(1) = -sum3;
 
-    acc_rate = my_min(0, ((std::count(temp_clust.begin(),temp_clust.end(),temp_clust(id1)) +  std::count(temp_clust.begin(),temp_clust.end(),temp_clust(id2)) - 2) * log(0.5) +
+    int cnt_id1 = (int) arma::accu(temp_clust == temp_clust(id1));
+    int cnt_id2 = (int) arma::accu(temp_clust == temp_clust(id2));
+
+    acc_rate = my_min(0, ((cnt_id1 +  cnt_id2 - 2) * log(0.5) +
       lgamma(alpha) +
       log_sum_exp(sum1vec) -
       log_sum_exp(sum2vec) +
-      lgamma(alpha + std::count(temp_clust.begin(),temp_clust.end(),temp_clust(id1)) +  std::count(temp_clust.begin(),temp_clust.end(),temp_clust(id2))) -
-      lgamma(alpha + std::count(temp_clust.begin(),temp_clust.end(),temp_clust(id1))) - lgamma(alpha + std::count(temp_clust.begin(),temp_clust.end(),temp_clust(id2))) +
+      lgamma(alpha + cnt_id1 +  cnt_id2) -
+      lgamma(alpha + cnt_id1) - lgamma(alpha + cnt_id2) +
       sum(temp_llik) - sum(llik) +
       log_sum_exp(temp_vec1) - log_sum_exp(temp_vec2)));
 
@@ -2233,8 +2340,11 @@ void update_partition(arma::mat data,
     sum3vec(0) = log(1);
     sum3vec(1) = -sum3;
 
-    acc_rate = my_min(0, (- (std::count(temp_clust.begin(),temp_clust.end(),temp_clust(id1)) +  std::count(temp_clust.begin(),temp_clust.end(),temp_clust(id2)) - 2) * log(0.5) +
-      - lgamma(alpha + std::count(temp_clust.begin(),temp_clust.end(),temp_clust(id1)) + std::count(temp_clust.begin(),temp_clust.end(),temp_clust(id2))) +
+    int cnt_id1 = (int) arma::accu(temp_clust == temp_clust(id1));
+    int cnt_id2 = (int) arma::accu(temp_clust == temp_clust(id2));
+
+    acc_rate = my_min(0, (- (cnt_id1 +  cnt_id2 - 2) * log(0.5) +
+      - lgamma(alpha + cnt_id1 + cnt_id2) +
       log_sum_exp(sum1vec) -
       log_sum_exp(sum3vec) +
       sum(temp_llik) - sum(llik) + log_sum_exp(temp_vec1) -
@@ -2255,9 +2365,9 @@ void update_partition(arma::mat data,
   k = orders.n_rows;
   for(int i = 0; i < k; i++){
 
-    if((int) std::count(clust.begin(), clust.end(), i) == 0){
+    if((int) arma::accu(clust == i) == 0){
       for(int j = k; j > i; j--){
-        if((int) std::count(clust.begin(), clust.end(), j) != 0){
+        if((int) arma::accu(clust == j) != 0){
           clust(find(clust == j)).fill(i);
           orders.swap_rows(i,j);
           break;
@@ -2268,7 +2378,7 @@ void update_partition(arma::mat data,
 
   u_bound = 1;
   for(int i = 1; i < k + 1; i++){
-    if(std::count(clust.begin(), clust.end(),i) > 0){
+    if((int) arma::accu(clust == i) > 0){
       u_bound += 1;
     }
   }
@@ -2337,8 +2447,10 @@ Rcpp::List marginal_CP(arma::mat data,
   arma::mat res_rho(niter - nburn, data.n_rows);
 
   //loop
-  int start_s = clock();
-  int current_s;
+  //int start_s = clock();
+  clock_t start_s = clock();
+  //int current_s = start_s;
+  clock_t current_s = start_s;
   if(nupd == 0){
     nupd = round(niter / 10);
   }
@@ -2347,7 +2459,7 @@ Rcpp::List marginal_CP(arma::mat data,
   // start
   for(int iter = 0; iter < niter; iter++){
 
-    update_I0(data, rho, rho01, a0, b0, c0, d0, I0_var, gamma, dt, M,
+    update_I0(data, rho, a0, b0, c0, d0, I0_var, gamma, dt, M,
                S0, R0, llik, clust, orders);
 
     for(arma::uword j = 0; j < orders.n_rows; j++){
@@ -2516,7 +2628,6 @@ return infection_times;
 //-----------------
 
 //' @name detect_cp_uni
-//' @export detect_cp_uni
 //'
 //' @title Detect Change Points on an univariate time series.
 //' @description Detect Change Points on an univariate time series.
@@ -2533,19 +2644,10 @@ return infection_times;
 //' \item{\code{$orders}} a matrix where each row corresponds to the output order of the corresponding iteration.
 //' \item{\code{time}} computational time in seconds.
 //' \item{\code{$sigma_MCMC}} traceplot for \eqn{\sigma}.
-//' \item{\code{$sigma_MCMC_01}} a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{\sigma} was accepted, \eqn{0} otherwise.
 //' \item{\code{$delta_MCMC}} traceplot for \eqn{\delta}.
 //' }
 //'
-//' @examples
-//'
-//' data_vec <- as.numeric(c(rnorm(50,0,0.1), rnorm(50,1,0.25)))
-//'
-//' out <- detect_cp_uni(data = data_vec,
-//'                             n_iterations = 2500,
-//'                             q = 0.25)
-//'
-//'
+//' @keywords internal
 // [[Rcpp::export]]
 Rcpp::List detect_cp_uni(arma::vec data,
                                 int n_iterations, double q,
@@ -2556,8 +2658,10 @@ Rcpp::List detect_cp_uni(arma::vec data,
                                 bool print_progress = true,
                                 unsigned long user_seed = 1234){
 
- int start_s = clock();
- int current_s = start_s;
+ //int start_s = clock();
+ clock_t start_s = clock();
+ //int current_s = start_s;
+ clock_t current_s = start_s;
  int nupd = round(n_iterations / 10);
 
  // set seed for gsl random distribution generator
@@ -2569,14 +2673,12 @@ Rcpp::List detect_cp_uni(arma::vec data,
  gsl_rng_set(r, user_seed);
  //
 
- arma::vec res_order, probs(2), phi_inf(1), phi_inf_10(1), sigma_inf(1), sigma_inf_10(1), delta_inf(1);
+ arma::vec res_order, res_entropy(n_iterations), res_lkl(n_iterations), probs(2), phi_inf(1), sigma_inf(1), delta_inf(1);
  arma::mat data_mat(1,data.n_elem), res_mat(n_iterations, data_mat.n_cols);
 
  // add a random initialisation for the gamma param
  phi_inf(0) = 0.5;
- phi_inf_10(0) = 0;
  sigma_inf(0) = 0.1;
- sigma_inf_10(0) = 0;
  delta_inf(0) = 0.1;
 
  for(arma::uword i = 0; i < data.n_elem; i++){
@@ -2679,14 +2781,16 @@ Rcpp::List detect_cp_uni(arma::vec data,
 
    // Posterior infererence on main parameters
    UpdatePhi(phi_inf(iter), data_mat, order, delta_inf(iter), sigma_inf(iter), k_0, nu_0,
-             S_0, m_0, phi_inf, phi_inf_10, r, prior_var_phi);
+             S_0, m_0, phi_inf, r, prior_var_phi);
 
-   UpdateSigma(order, delta_inf(iter), sigma_inf(iter), sigma_inf, sigma_inf_10, r);
+   UpdateSigma(order, delta_inf(iter), sigma_inf(iter), sigma_inf, r);
 
    UpdateDelta(delta_inf(iter), sigma_inf(iter+1), order, delta_inf, prior_delta_c, prior_delta_d, r);
    //
 
    res_mat.row(iter) = order.t();
+   res_entropy(iter) = compute_entropy_partition(order);
+   res_lkl(iter) = Likelihood_UniTS(data_mat, order, phi_inf(iter), a, b, c);
 
    if(((iter + 1) % nupd == 0) & (print_progress == true)){
      current_s = clock();
@@ -2702,10 +2806,10 @@ Rcpp::List detect_cp_uni(arma::vec data,
  Rcpp::List out_list;
  out_list["orders"] = res_mat;
  out_list["time"] = time;
+ out_list["entropy"] = res_entropy;
+ out_list["lkl"] = res_lkl;
  out_list["phi_MCMC"] = phi_inf;
- out_list["phi_MCMC_01"] = phi_inf_10;
  out_list["sigma_MCMC"] = sigma_inf;
- out_list["sigma_MCMC_01"] = sigma_inf_10;
  out_list["delta_MCMC"] = delta_inf;
 
  gsl_rng_free (r);
@@ -2717,7 +2821,6 @@ Rcpp::List detect_cp_uni(arma::vec data,
 
 
 //' @name detect_cp_multi
-//' @export detect_cp_multi
 //'
 //' @title Detect Change Points on multivariate time series
 //' @description Detect Change Points on multivariate time series
@@ -2734,26 +2837,11 @@ Rcpp::List detect_cp_uni(arma::vec data,
 //' \item{\code{$orders}} a matrix where each row corresponds to the output order of the corresponding iteration.
 //' \item{\code{time}} computational time in seconds.
 //' \item{\code{$phi_MCMC}} traceplot for \eqn{\gamma}.
-//' \item{\code{$phi_MCMC_01}} a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{\phi} was accepted, \eqn{0} otherwise.
 //' \item{\code{$sigma_MCMC}} traceplot for \eqn{\sigma}.
-//' \item{\code{$sigma_MCMC_01}} a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{\sigma} was accepted, \eqn{0} otherwise.
 //' \item{\code{$delta_MCMC}} traceplot for \eqn{\delta}.
 //' }
 //'
-//' @examples
-//'
-//' data_mat <- matrix(NA, nrow = 3, ncol = 100)
-//'
-//' data_mat[1,] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-//' data_mat[2,] <- as.numeric(c(rnorm(50,0,0.125), rnorm(50,1,0.225)))
-//' data_mat[3,] <- as.numeric(c(rnorm(50,0,0.175), rnorm(50,1,0.280)))
-//'
-//' out <- detect_cp_multi(data = data_mat,
-//'                               n_iterations = 2500,
-//'                               q = 0.25,k_0 = 0.25, nu_0 = 4, S_0 = diag(1,3,3), m_0 = rep(0,3),
-//'                               prior_delta_c = 2, prior_delta_d = 0.2, prior_var_phi = 0.1)
-//'
-//'
+//' @keywords internal
 // [[Rcpp::export]]
 Rcpp::List detect_cp_multi(arma::mat data,
                                   int n_iterations, double q, double k_0, double nu_0,
@@ -2770,20 +2858,20 @@ Rcpp::List detect_cp_multi(arma::mat data,
    gsl_rng_set(r, user_seed);
    //
 
-   arma::vec res_order, probs(2), phi_inf(1), phi_inf_10(1), sigma_inf(1), sigma_inf_10(1), delta_inf(1);
+   arma::vec res_order, res_entropy(n_iterations), res_lkl(n_iterations), probs(2), phi_inf(1), sigma_inf(1), delta_inf(1);
    arma::mat res_mat(n_iterations, data.n_cols);
 
    phi_inf(0) = 0.5; // add a random initialisation for the gamma param
-   phi_inf_10(0) = 0;
    sigma_inf(0) = 0.1;
-   sigma_inf_10(0) = 0;
    delta_inf(0) = 0.1;
 
    //generate random starting order
    arma::vec order = generate_random_order(data.n_cols, 2/data.n_cols, r);
 
-   int start_s = clock();
-   int current_s = start_s;
+   //int start_s = clock();
+   clock_t start_s = clock();
+   //int current_s = start_s;
+   clock_t current_s = start_s;
    int nupd = round(n_iterations / 10);
 
    for(int iter = 0; iter < n_iterations; iter++){
@@ -2869,14 +2957,16 @@ Rcpp::List detect_cp_multi(arma::mat data,
 
      // Posterior infererence on main parameters
      UpdatePhi(phi_inf(iter), data, order, delta_inf(iter), sigma_inf(iter), k_0, nu_0,
-                 S_0, m_0, phi_inf, phi_inf_10, r, prior_var_phi);
+                 S_0, m_0, phi_inf, r, prior_var_phi);
 
-     UpdateSigma(order, delta_inf(iter), sigma_inf(iter), sigma_inf, sigma_inf_10, r);
+     UpdateSigma(order, delta_inf(iter), sigma_inf(iter), sigma_inf, r);
 
      UpdateDelta(delta_inf(iter), sigma_inf(iter+1), order, delta_inf, prior_delta_c, prior_delta_d, r);
      //
 
      res_mat.row(iter) = order.t();
+     res_entropy(iter) = compute_entropy_partition(order);
+     res_lkl(iter) = Likelihood_MultiTS(data, order, phi_inf(iter), k_0, nu_0, S_0, m_0);
 
      if(((iter + 1) % nupd == 0) & (print_progress == true)){
        current_s = clock();
@@ -2892,10 +2982,10 @@ Rcpp::List detect_cp_multi(arma::mat data,
    Rcpp::List out_list;
    out_list["orders"] = res_mat;
    out_list["time"] = time;
+   out_list["entropy"] = res_entropy;
+   out_list["lkl"] = res_lkl;
    out_list["phi_MCMC"] = phi_inf;
-   out_list["phi_MCMC_01"] = phi_inf_10;
    out_list["sigma_MCMC"] = sigma_inf;
-   out_list["sigma_MCMC_01"] = sigma_inf_10;
    out_list["delta_MCMC"] = delta_inf;
 
    gsl_rng_free (r);
@@ -2905,7 +2995,6 @@ Rcpp::List detect_cp_multi(arma::mat data,
  }
 
 //' @name detect_cp_epi
-//' @export detect_cp_epi
 //'
 //' @title Detect Change Points on a epidemic diffusion
 //' @description Detect Change Points on a epidemic diffusion
@@ -2924,32 +3013,9 @@ Rcpp::List detect_cp_multi(arma::mat data,
 //' \item{\code{$orders}} a matrix where each row corresponds to the output order of the corresponding iteration.
 //' \item{\code{time}} computational time in seconds.
 //' \item{\code{$I0_MCMC}} traceplot for \eqn{I_0}.
-//' \item{\code{$I0_MCMC_01}} a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{I_0} was accepted, \eqn{0} otherwise.
 //' }
 //'
-//' @examples
-//' \donttest{
-//' data_mat <- matrix(NA, nrow = 100, ncol = 1)
-//'
-//' betas <- c(rep(0.45, 25),rep(0.14,75))
-//'
-//' inf_times <- sim_epi_data(10000, 10, 100, betas, 1/8)
-//'
-//' inf_times_vec <- rep(0,100)
-//' names(inf_times_vec) <- as.character(1:100)
-//'
-//' for(j in 1:100){
-//'  if(as.character(j) %in% names(table(floor(inf_times)))){
-//'  inf_times_vec[j] = table(floor(inf_times))[which(names(table(floor(inf_times))) == j)]
-//'  }
-//' }
-//'
-//' data_mat[,1] <- inf_times_vec
-//'
-//' out <- detect_cp_epi(data = data_mat, n_iterations = 250, q = 0.5,
-//'                      xi = 1/8, a0 = 40, b0 = 10, M = 250)
-//'
-//'}
+//' @keywords internal
 // [[Rcpp::export]]
 Rcpp::List detect_cp_epi(arma::mat data, int n_iterations, double q,
                          double M, double xi, double a0, double b0, double I0_var = 0.01,
@@ -2966,19 +3032,20 @@ Rcpp::List detect_cp_epi(arma::mat data, int n_iterations, double q,
 
    data = data.t();
 
-   arma::vec clust(data.n_rows), llik(data.n_rows), rho(data.n_rows), rho01(data.n_rows);
+   arma::vec clust(data.n_rows), llik(data.n_rows), rho(data.n_rows), res_entropy(n_iterations), res_lkl(n_iterations), order_tmp;
 
    rho.fill(0.0045);
-   rho01.fill(0);
    clust = arma::regspace(0, data.n_rows-1);
 
    arma::mat order(1, data.n_cols);
    arma::mat orders_output(n_iterations, data.n_cols);
-   arma::mat rho_output(n_iterations, data.n_rows), rho01_output(n_iterations, data.n_rows);
+   arma::mat rho_output(n_iterations, data.n_rows);
    order.row(0).fill(0);
 
-   int start_s = clock();
-   int current_s = start_s;
+   //int start_s = clock();
+   clock_t start_s = clock();
+   //int current_s = start_s;
+   clock_t current_s = start_s;
    int nupd = round(n_iterations / 10);
 
    double c0 = 1;
@@ -2993,12 +3060,14 @@ Rcpp::List detect_cp_epi(arma::mat data, int n_iterations, double q,
    }
 
    for(int iter = 0; iter < n_iterations; iter++){
-    update_I0(data, rho, rho01, a0, b0, c0, d0, I0_var, xi, dt, M, S0, R0, llik, clust, order);
+    update_I0(data, rho, a0, b0, c0, d0, I0_var, xi, dt, M, S0, R0, llik, clust, order);
     update_single_order(data, clust, 0, order, llik, q, dt, a0, b0, xi, rho, M, S0, R0);
 
     orders_output.row(iter) = order.row(0);
     rho_output.row(iter) = rho;
-    rho01_output.row(iter) = rho01;
+    order_tmp = order_tmp = order.row(0).t();
+    res_entropy(iter) = compute_entropy_partition(order_tmp);
+    res_lkl(iter) = sum(llik);
 
      if(((iter + 1) % nupd == 0) & (print_progress == true)){
        current_s = clock();
@@ -3012,8 +3081,9 @@ Rcpp::List detect_cp_epi(arma::mat data, int n_iterations, double q,
 
    Rcpp::List out_list;
    out_list["orders"] = orders_output;
+   out_list["entropy"] = res_entropy;
+   out_list["lkl"] = res_lkl;
    out_list["I0_MCMC"] = rho_output;
-   out_list["I0_MCMC_01"] = rho01_output;
    out_list["time"] = time;
 
    gsl_rng_free (r);
@@ -3046,37 +3116,7 @@ Rcpp::List detect_cp_epi(arma::mat data, int n_iterations, double q,
 //' \item{\code{$rho}} traceplot for the proportion of infected individuals at time 0.
 //' }
 //'
-//'@examples
-//'\donttest{
-//' data_mat <- matrix(NA, nrow = 5, ncol = 50)
-//'
-//' betas <- list(c(rep(0.45, 25),rep(0.14,25)),
-//'               c(rep(0.55, 25),rep(0.11,25)),
-//'               c(rep(0.50, 25),rep(0.12,25)),
-//'               c(rep(0.52, 10),rep(0.15,40)),
-//'               c(rep(0.53, 10),rep(0.13,40)))
-//'
-//'  inf_times <- list()
-//'
-//'  for(i in 1:5){
-//'
-//'    inf_times[[i]] <- sim_epi_data(10000, 10, 50, betas[[i]], 1/8)
-//'
-//'    vec <- rep(0,50)
-//'    names(vec) <- as.character(1:50)
-//'
-//'    for(j in 1:50){
-//'      if(as.character(j) %in% names(table(floor(inf_times[[i]])))){
-//'        vec[j] = table(floor(inf_times[[i]]))[which(names(table(floor(inf_times[[i]]))) == j)]
-//'      }
-//'    }
-//'    data_mat[i,] <- vec
-//'  }
-//'
-//'  out <- clust_cp_epi(data = data_mat, n_iterations = 3000, M = 250, B = 1000, L = 1)
-//'
-//'}
-//' @export
+//' @keywords internal
 // [[Rcpp::export]]
 Rcpp::List clust_cp_epi(arma::mat data,
                           int n_iterations,
@@ -3102,9 +3142,8 @@ Rcpp::List clust_cp_epi(arma::mat data,
  gsl_rng_set(r, user_seed);
  //
 
- arma::vec rho(data.n_rows), rho01(data.n_rows);
+ arma::vec rho(data.n_rows), res_entropy(n_iterations);
  rho.fill(0.0045);
- rho01.fill(0);
 
  arma::vec clust(data.n_rows), llik(data.n_rows);
  clust = arma::regspace(0, data.n_rows-1);
@@ -3141,8 +3180,10 @@ Rcpp::List clust_cp_epi(arma::mat data,
  arma::mat res_rho_01(n_iterations, data.n_rows);
 
  //loop
- int start_s = clock();
- int current_s = start_s;
+ //int start_s = clock();
+ clock_t start_s = clock();
+ //int current_s = start_s;
+ clock_t current_s = start_s;
  int nupd = round(n_iterations / 10);
 
  if(print_progress == true){
@@ -3152,7 +3193,7 @@ Rcpp::List clust_cp_epi(arma::mat data,
  // start
  for(int iter = 0; iter < n_iterations; iter++){
 
-   update_I0(data, rho, rho01, a0, b0, c0, d0, I0_var, xi, dt, M,
+   update_I0(data, rho, a0, b0, c0, d0, I0_var, xi, dt, M,
               S0, R0, llik, clust, orders);
 
 
@@ -3167,10 +3208,12 @@ Rcpp::List clust_cp_epi(arma::mat data,
 
 
    res_clust.row(iter) = clust.t();
-   res_llik.row(iter).cols(0,data.n_rows-1) = llik.t();
-   res_rho.row(iter).cols(0,data.n_rows-1) = rho.t();
-   res_rho_01.row(iter).cols(0,data.n_rows-1) = rho01.t();
+   //res_llik.row(iter).cols(0,data.n_rows-1) = llik.t();
+   res_llik.row(iter) = llik.t();
+   res_entropy(iter) = compute_entropy_partition(clust);
+   //res_rho.row(iter).cols(0,data.n_rows-1) = rho.t();
    res_orders.slice(iter).rows(0, orders.n_rows-1) = orders;
+   res_rho.row(iter) = rho.t();
 
    // print time
    if(((iter + 1) % nupd == 0) & (print_progress == true)){
@@ -3190,9 +3233,9 @@ Rcpp::List clust_cp_epi(arma::mat data,
  results["clust"] = res_clust;
  results["orders"] = res_orders;
  results["time"] = time;
+ results["entropy"] = res_entropy;
  results["llik"] = res_llik;
  results["I0_MCMC"] = res_rho;
- results["I0_MCMC_01"] = res_rho_01;
  return results;
 }
 
@@ -3216,19 +3259,7 @@ Rcpp::List clust_cp_epi(arma::mat data,
 //' \item{\code{$norm_vec}} a vector containing the normalisation constant computed at the beginning of the algorithm.
 //' }
 //'
-//' @examples
-//'\donttest{
-//' data_mat <- matrix(NA, nrow = 5, ncol = 100)
-//'
-//' data_mat[1,] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-//' data_mat[2,] <- as.numeric(c(rnorm(50,0,0.125), rnorm(50,1,0.225)))
-//' data_mat[3,] <- as.numeric(c(rnorm(50,0,0.175), rnorm(50,1,0.280)))
-//' data_mat[4,] <- as.numeric(c(rnorm(25,0,0.135), rnorm(75,1,0.225)))
-//' data_mat[5,] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
-//'
-//' out <- clust_cp_uni(data = data_mat, n_iterations = 5000, B = 1000, L = 1, phi = 0.5)
-//'}
-//' @export
+//' @keywords internal
 // [[Rcpp::export]]
 Rcpp::List clust_cp_uni(arma::mat data,
                           int n_iterations,
@@ -3250,7 +3281,7 @@ arma::mat res_clust(n_iterations, data.n_rows), res_lkl(n_iterations, data.n_row
 arma::cube res_orders(data.n_rows, data.n_cols, n_iterations);
 arma::vec freq_temp(data.n_rows), prob_temp(data.n_rows), proposed_order_i(data.n_cols), proposed_order_j(data.n_cols), order_i(data.n_cols), order_j(data.n_cols),
 proposed_order(data.n_cols), proposed_partition(data.n_rows), prob_temp_j(data.n_rows), prob_temp_i(data.n_rows), proposed_partition_clean(data.n_cols),
-merge_i(data.n_rows), merge_j(data.n_rows), old_order, order_0, lkl_proposal_m, lkl_old_i_m, lkl_old_j_m, lkl_old_s, lkl_proposal_i_s,lkl_proposal_j_s;
+merge_i(data.n_rows), merge_j(data.n_rows), old_order, order_0, lkl_proposal_m, lkl_old_i_m, lkl_old_j_m, lkl_old_s, lkl_proposal_i_s,lkl_proposal_j_s, res_entropy(n_iterations);
 int id1, id2, id3, id4;
 double alpha;
 
@@ -3288,8 +3319,10 @@ if(print_progress == true){
 
 // MAIN LOOP
 
-int start_s = clock();
-int current_s = start_s;
+//int start_s = clock();
+clock_t start_s = clock();
+//int current_s = start_s;
+clock_t current_s = start_s;
 int nupd = round(n_iterations / 10);
 
 for(int iter = 0; iter < n_iterations; iter++){
@@ -3510,6 +3543,7 @@ for(int iter = 0; iter < n_iterations; iter++){
       }
 
   res_clust.row(iter) = partition_temp.t();
+  res_entropy(iter) = compute_entropy_partition(partition_temp);
   res_orders.slice(iter) = orders_temp;
   res_lkl.row(iter) = lkl_temp.t();
 
@@ -3529,6 +3563,7 @@ Rcpp::List out_list;
 out_list["clust"] = res_clust;
 out_list["orders"] = res_orders;
 out_list["time"] = time;
+out_list["entropy"] = res_entropy;
 out_list["lkl"] = res_lkl;
 out_list["norm_vec"] = norm_const;
 
@@ -3554,34 +3589,7 @@ return out_list;
 //' \item{\code{$norm_vec}} a vector containing the normalisation constant computed at the beginning of the algorithm.
 //' }
 //'
-//' @examples
-//'\donttest{
-//' data_array <- array(data = NA, dim = c(3,100,5))
-//'
-//' data_array[1,,1] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-//' data_array[2,,1] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-//' data_array[3,,1] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-//'
-//' data_array[1,,2] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-//' data_array[2,,2] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-//' data_array[3,,2] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-//'
-//' data_array[1,,3] <- as.numeric(c(rnorm(50,0,0.175), rnorm(50,1,0.280)))
-//' data_array[2,,3] <- as.numeric(c(rnorm(50,0,0.175), rnorm(50,1,0.280)))
-//' data_array[3,,3] <- as.numeric(c(rnorm(50,0,0.175), rnorm(50,1,0.280)))
-//'
-//' data_array[1,,4] <- as.numeric(c(rnorm(25,0,0.135), rnorm(75,1,0.225)))
-//' data_array[2,,4] <- as.numeric(c(rnorm(25,0,0.135), rnorm(75,1,0.225)))
-//' data_array[3,,4] <- as.numeric(c(rnorm(25,0,0.135), rnorm(75,1,0.225)))
-//'
-//' data_array[1,,5] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
-//' data_array[2,,5] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
-//' data_array[3,,5] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
-//'
-//' out <- clust_cp_multi(data = data_array, n_iterations = 3000, B = 1000, L = 1,
-//'                         phi = 0.1, k_0 = 0.25, nu_0 = 5, S_0 = diag(0.1,3,3), m_0 = rep(0,3))
-//'}
-//' @export
+//' @keywords internal
 // [[Rcpp::export]]
 Rcpp::List clust_cp_multi(arma::cube data,
                             int n_iterations,
@@ -3600,7 +3608,7 @@ Rcpp::List clust_cp_multi(arma::cube data,
   arma::cube res_orders(data.n_slices, data.slice(0).n_cols, n_iterations);
   arma::vec freq_temp(data.n_slices), prob_temp(data.n_slices), proposed_order_i(data.slice(0).n_cols), proposed_order_j(data.slice(0).n_cols), order_i(data.slice(0).n_cols), order_j(data.slice(0).n_cols),
   proposed_order(data.slice(0).n_cols), proposed_partition(data.n_slices), prob_temp_j(data.n_slices), prob_temp_i(data.n_slices), proposed_partition_clean(data.slice(0).n_cols),
-  merge_i(data.n_slices), merge_j(data.n_slices), old_order, order_0, lkl_proposal_m, lkl_old_i_m, lkl_old_j_m, lkl_old_s, lkl_proposal_i_s,lkl_proposal_j_s;
+  merge_i(data.n_slices), merge_j(data.n_slices), old_order, order_0, lkl_proposal_m, lkl_old_i_m, lkl_old_j_m, lkl_old_s, lkl_proposal_i_s,lkl_proposal_j_s, res_entropy(n_iterations);
   int id1, id2, id3, id4;
   double alpha;
 
@@ -3639,8 +3647,10 @@ Rcpp::List clust_cp_multi(arma::cube data,
 
   // MAIN LOOP
 
-  int start_s = clock();
-  int current_s = start_s;
+  //int start_s = clock();
+  clock_t start_s = clock();
+  //int current_s = start_s;
+  clock_t current_s = start_s;
   int nupd = round(n_iterations / 10);
 
   for(int iter = 0; iter < n_iterations; iter++){
@@ -3661,6 +3671,7 @@ Rcpp::List clust_cp_multi(arma::cube data,
       // MERGE
 
       proposed_partition = partition_temp;
+
 
       merge_i.fill(0.0);
       merge_j.fill(0.0);
@@ -3739,11 +3750,9 @@ Rcpp::List clust_cp_multi(arma::cube data,
 
       //
 
-
     } else {
 
       // SPLIT
-
       proposed_partition = partition_temp;
 
       prob_temp.fill(0.0);
@@ -3853,6 +3862,7 @@ Rcpp::List clust_cp_multi(arma::cube data,
         }
 
     res_clust.row(iter) = partition_temp.t();
+    res_entropy(iter) = compute_entropy_partition(partition_temp);
     res_orders.slice(iter) = orders_temp;
     res_lkl.row(iter) = lkl_temp.t();
 
@@ -3874,6 +3884,7 @@ Rcpp::List clust_cp_multi(arma::cube data,
   out_list["clust"] = res_clust;
   out_list["orders"] = res_orders;
   out_list["time"] = time;
+  out_list["entropy"] = res_entropy;
   out_list["lkl"] = res_lkl;
   out_list["norm_vec"] = norm_const;
 

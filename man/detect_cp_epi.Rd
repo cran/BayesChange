@@ -41,33 +41,9 @@ Function \code{detect_cp_epi} returns a list containing the following components
 \item{\code{$orders}} a matrix where each row corresponds to the output order of the corresponding iteration.
 \item{\code{time}} computational time in seconds.
 \item{\code{$I0_MCMC}} traceplot for \eqn{I_0}.
-\item{\code{$I0_MCMC_01}} a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{I_0} was accepted, \eqn{0} otherwise.
 }
 }
 \description{
 Detect Change Points on a epidemic diffusion
 }
-\examples{
-\donttest{
-data_mat <- matrix(NA, nrow = 100, ncol = 1)
-
-betas <- c(rep(0.45, 25),rep(0.14,75))
-
-inf_times <- sim_epi_data(10000, 10, 100, betas, 1/8)
-
-inf_times_vec <- rep(0,100)
-names(inf_times_vec) <- as.character(1:100)
-
-for(j in 1:100){
- if(as.character(j) \%in\% names(table(floor(inf_times)))){
- inf_times_vec[j] = table(floor(inf_times))[which(names(table(floor(inf_times))) == j)]
- }
-}
-
-data_mat[,1] <- inf_times_vec
-
-out <- detect_cp_epi(data = data_mat, n_iterations = 250, q = 0.5,
-                     xi = 1/8, a0 = 40, b0 = 10, M = 250)
-
-}
-}
+\keyword{internal}

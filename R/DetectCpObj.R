@@ -1,23 +1,27 @@
 #' DetectCpObj class constructor
 #'
-#' @description A constructor for the \code{DetectCpObj} class. The class \code{DetectCpObj} contains...
+#' @description
+#' Constructor for the \code{DetectCpObj} class. This class stores the output
+#' of the Bayesian change–point detection algorithm, including MCMC traces,
+#' allocation orders, and computational information.
 #'
-#' @param data a vector or a matrix containing the values of the time series;
-#' @param n_iterations number of iterations of the MCMC algorithm;
-#' @param n_burnin number of MCMC iterations to exclude in the posterior estimate;
-#' @param orders a matrix where each row corresponds to the output order of the corresponding iteration;
-#' @param time computational time in seconds;
-#' @param phi_MCMC traceplot for \eqn{\gamma}.
-#' @param phi_MCMC_01 a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{\phi} was accepted, \eqn{0} otherwise.
-#' @param sigma_MCMC traceplot for \eqn{\sigma}.
-#' @param sigma_MCMC_01 a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{\sigma} was accepted, \eqn{0} otherwise.
-#' @param delta_MCMC traceplot for \eqn{\delta}.
-#' @param I0_MCMC traceplot for \eqn{I_0}.
-#' @param I0_MCMC_01 a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{I_0} was accepted, \eqn{0} otherwise.
-#' @param kernel_ts if TRUE data are time series.
-#' @param kernel_epi if TRUE data are epidemic diffusions.
-#' @param univariate_ts TRUE/FALSE if time series is univariate or not.
+#' @param data A vector or matrix containing the observed time series.
+#' @param n_iterations Total number of MCMC iterations.
+#' @param n_burnin Number of burn-in iterations to discard.
+#' @param orders A matrix where each row corresponds to the latent block
+#'        assignment (order) of the time indices at each MCMC iteration.
+#' @param time Computational time in seconds.
 #'
+#' @param entropy_MCMC A \code{coda::mcmc} object containing MCMC samples of the entropy measure.
+#' @param lkl_MCMC A \code{coda::mcmc} object containing MCMC samples of the log-likelihood.
+#' @param phi_MCMC A \code{coda::mcmc} object containing MCMC draws for \eqn{\gamma}.
+#' @param sigma_MCMC A \code{coda::mcmc} object containing MCMC draws for \eqn{\sigma}.
+#' @param delta_MCMC A \code{coda::mcmc} object containing MCMC draws for \eqn{\delta}.
+#' @param I0_MCMC A \code{coda::mcmc} object containing MCMC draws for \eqn{I_0}.
+#'
+#' @param kernel_ts Logical; TRUE if the model for time series data is used.
+#' @param kernel_epi Logical; TRUE if the epidemic diffusion model is used.
+#' @param univariate_ts Logical; TRUE if the time series is univariate, FALSE otherwise.
 #'
 #' @export
 #'
@@ -26,13 +30,12 @@ DetectCpObj <- function(data = NULL,
                          n_burnin = NULL,
                          orders = NULL,
                          time = NULL,
+                         entropy_MCMC = NULL,
+                         lkl_MCMC = NULL,
                          phi_MCMC = NULL,
-                         phi_MCMC_01 = NULL,
                          sigma_MCMC = NULL,
-                         sigma_MCMC_01 = NULL,
                          delta_MCMC = NULL,
                          I0_MCMC = NULL,
-                         I0_MCMC_01 = NULL,
                          kernel_ts = NULL,
                          kernel_epi = NULL,
                          univariate_ts = NULL){
@@ -42,13 +45,12 @@ DetectCpObj <- function(data = NULL,
                 n_burnin = n_burnin,
                 orders = orders,
                 time = time,
+                entropy_MCMC = entropy_MCMC,
+                lkl_MCMC = lkl_MCMC,
                 phi_MCMC = phi_MCMC,
-                phi_MCMC_01 = phi_MCMC_01,
                 sigma_MCMC = sigma_MCMC,
-                sigma_MCMC_01 = sigma_MCMC_01,
                 delta_MCMC = delta_MCMC,
                 I0_MCMC = I0_MCMC,
-                I0_MCMC_01 = I0_MCMC_01,
                 kernel_ts = kernel_ts,
                 kernel_epi = kernel_epi,
                 univariate_ts = univariate_ts)
@@ -63,17 +65,15 @@ DetectCpObj <- function(data = NULL,
 #' @param ... parameter of the generic method.
 #'
 #' @examples
-#' data_mat <- matrix(NA, nrow = 3, ncol = 100)
 #'
-#' data_mat[1,] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-#' data_mat[2,] <- as.numeric(c(rnorm(50,0,0.125), rnorm(50,1,0.225)))
-#' data_mat[3,] <- as.numeric(c(rnorm(50,0,0.175), rnorm(50,1,0.280)))
+#' data("eu_inflation")
 #'
-#' out <- detect_cp(data = data_mat, n_iterations = 2500, n_burnin = 500,
-#'                 params = list(q = 0.25, k_0 = 0.25, nu_0 = 4,
-#'                               S_0 = diag(1,3,3), m_0 = rep(0,3),
-#'                               prior_delta_c = 2, prior_delta_d = 0.2,
-#'                               prior_var_phi = 0.1), kernel = "ts")
+#' params_uni <- list(a = 1, b = 1, c = 1, prior_var_phi = 0.1,
+#'                    prior_delta_c = 1, prior_delta_d = 1)
+#'
+#' out <- detect_cp(data = eu_inflation[1,], n_iterations = 1000,
+#'                  n_burnin = 100, q = 0.5, params = params_uni,
+#'                  kernel = "ts")
 #' print(out)
 #'
 #' @rdname print.DetectCpObj
@@ -82,15 +82,17 @@ DetectCpObj <- function(data = NULL,
 print.DetectCpObj <- function(x, ...) {
   cat("DetectCpObj object\n")
   if(x$kernel_ts){
-    if(x$univariate){
-      cat("Type: change points detection on univariate time series")
+    if(x$univariate_ts){
+      cat("Type: change points detection on univariate time series\n")
     } else {
-      cat("Type: change points detection on multivariate time series")
+      cat("Type: change points detection on multivariate time series\n")
     }
   }
   if(x$kernel_epi){
-    cat("Type: change points detection on an epidemic diffusion")
+    cat("Type: change points detection on an epidemic diffusion\n")
   }
+
+  invisible(x)
 
 }
 
@@ -102,17 +104,14 @@ print.DetectCpObj <- function(x, ...) {
 #'
 #' @examples
 #'
-#' data_mat <- matrix(NA, nrow = 3, ncol = 100)
+#' data("eu_inflation")
 #'
-#' data_mat[1,] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-#' data_mat[2,] <- as.numeric(c(rnorm(50,0,0.125), rnorm(50,1,0.225)))
-#' data_mat[3,] <- as.numeric(c(rnorm(50,0,0.175), rnorm(50,1,0.280)))
+#' params_uni <- list(a = 1, b = 1, c = 1, prior_var_phi = 0.1,
+#'                    prior_delta_c = 1, prior_delta_d = 1)
 #'
-#' out <- detect_cp(data = data_mat, n_iterations = 2500, n_burnin = 500,
-#'                 params = list(q = 0.25, k_0 = 0.25, nu_0 = 4,
-#'                               S_0 = diag(1,3,3), m_0 = rep(0,3),
-#'                               prior_delta_c = 2, prior_delta_d = 0.2,
-#'                               prior_var_phi = 0.1), kernel = "ts")
+#' out <- detect_cp(data = eu_inflation[1,], n_iterations = 1000,
+#'                  n_burnin = 100, q = 0.5, params = params_uni,
+#'                  kernel = "ts")
 #' summary(out)
 #'
 #' @rdname summary.DetectCpObj
@@ -122,23 +121,36 @@ summary.DetectCpObj <- function(object, ...) {
   cat("DetectCpObj object\n")
   if(object$kernel_ts){
     if(object$univariate){
-      cat("Detecting change points on an univariate time series:\n",
-          "Number of burn-in iterations:", object$n_burnin, "\n",
-          "Number of MCMC iterations:", object$n_iterations - object$n_burnin, "\n",
-          "Computational time:", round(object$time, digits = 2), "seconds\n")
+      cat("Change point detection summary:\n",
+          "- Data: univariate time series\n",
+          "- Burn-in iterations:", object$n_burnin, "\n",
+          "- MCMC iterations:", object$n_iterations - object$n_burnin, "\n",
+          "- Average number of detected change points:", round(mean(apply(object$orders[(object$n_burnin+1):object$n_iterations,], 1,  function(x) max(x) + 1)),2), "\n",
+          "- Computational time:", round(object$time, 2), "seconds\n",
+          "\nUse plot() for a detailed visualization or posterior_estimate() to analyze the detected change points.\n")
     } else {
-      cat("Detecting change points on a", paste0(nrow(object$data),"-dimensional time series:\n"),
-          "Number of burn-in iterations:", object$n_burnin, "\n",
-          "Number of MCMC iterations:", object$n_iterations - object$n_burnin, "\n",
-          "Computational time:", round(object$time, digits = 2), "seconds\n")
+      cat("Change point detection summary:\n",
+          "- Data:", nrow(object$data), "-dimensional time series\n",
+          "- Burn-in iterations:", object$n_burnin, "\n",
+          "- MCMC iterations:", object$n_iterations - object$n_burnin, "\n",
+          "- Average number of detected change points:",
+          round(mean(apply(object$orders[(object$n_burnin + 1):object$n_iterations, ], 1, function(x) max(x) + 1)), 2), "\n",
+          "- Computational time:", round(object$time, 2), "seconds\n",
+          "\nUse plot() for a detailed visualization or posterior_estimate() to analyze the detected change points.\n")
+
     }
   }
 
   if(object$kernel_epi){
-    cat("Detecting change points on an epidemic diffusion:\n",
-        "Number of burn-in iterations:", object$n_burnin, "\n",
-        "Number of MCMC iterations:", object$n_iterations - object$n_burnin, "\n",
-        "Computational time:", round(object$time, digits = 2), "seconds\n")
+    cat("Change point detection summary:\n",
+        "- Data: epidemic diffusion\n",
+        "- Burn-in iterations:", object$n_burnin, "\n",
+        "- MCMC iterations:", object$n_iterations - object$n_burnin, "\n",
+        "- Average number of detected change points:",
+        round(mean(apply(object$orders[(object$n_burnin + 1):object$n_iterations, ], 1, function(x) max(x) + 1)), 2), "\n",
+        "- Computational time:", round(object$time, 2), "seconds\n",
+        "\nUse plot() for a detailed visualization or posterior_estimate() to analyze the detected change points.\n")
+
   }
 
 
@@ -158,18 +170,12 @@ posterior_estimate <- function (object, ...) {
 #'
 #' @description  The \code{posterior_estimate} method estimates the change points of the data making use of the salso algorithm, for a \code{DetectCPObj} class object.
 #'
-#' @param object an object of class \code{DetectCPObj}.
+#' @param object an object of class \code{DetectCpObj}.
 #' @param loss The loss function used to estimate the final partition, it can be "VI", "binder", "omARI", "NVI", "ID", "NID".
 #' @param maxNClusters maximum number of clusters in salso procedure.
 #' @param nRuns number of runs in salso procedure.
 #' @param maxZealousAttempts maximum number of zealous attempts in salso procedure.
 #' @param ... parameter of the generic method.
-#'
-#'
-#'
-#' @details
-#'
-#' put details here
 #'
 #' @return
 #'
@@ -183,11 +189,15 @@ posterior_estimate <- function (object, ...) {
 #'
 #' @examples
 #'
-#' data_vec <- as.numeric(c(rnorm(50,0,0.1), rnorm(50,1,0.25)))
 #'
+#' data("eu_inflation")
 #'
-#' out <- detect_cp(data = data_vec, n_iterations = 1000, n_burnin = 100,
-#'                  params = list(q = 0.25, phi = 0.1, a = 1, b = 1, c = 0.1), kernel = "ts")
+#' params_uni <- list(a = 1, b = 1, c = 1, prior_var_phi = 0.1,
+#'                    prior_delta_c = 1, prior_delta_d = 1)
+#'
+#' out <- detect_cp(data = eu_inflation[1,], n_iterations = 1000,
+#'                  n_burnin = 100, q = 0.5, params = params_uni,
+#'                  kernel = "ts")
 #'
 #' posterior_estimate(out)
 #'
@@ -270,9 +280,9 @@ posterior_estimate.DetectCpObj <- function(object,
 
 #' Plot estimated change points
 #'
-#' @description  The \code{plot} method plots the estimates change points estimated through the salso algorithm, for a \code{DetectCpObj} class object.
+#' @description  The \code{plot} method plots the estimated change points estimated through the salso algorithm, for a \code{DetectCpObj} class object.
 #'
-#' @param x an object of class \code{DetectCPObj}.
+#' @param x an object of class \code{DetectCpObj}.
 #' @param plot_freq if TRUE also the histogram with the empirical frequency of each change point is plotted.
 #' @param loss The loss function used to estimate the final partition, it can be "VI", "binder", "omARI", "NVI", "ID", "NID".
 #' @param maxNClusters maximum number of clusters in salso procedure.
@@ -281,27 +291,24 @@ posterior_estimate.DetectCpObj <- function(object,
 #' @param y,... parameters of the generic method.
 #'
 #'
-#'
 #' @return
 #'
 #' The function returns a ggplot object representing the detected change points. If \code{plot_freq = TRUE} is plotted also an histogram with the frequency of times that a change point has been detected in the MCMC chain.
 #'
-#'
 #' @examples
 #'
-#' data_mat <- matrix(NA, nrow = 3, ncol = 100)
+#' ## Univariate time series
 #'
-#' data_mat[1,] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-#' data_mat[2,] <- as.numeric(c(rnorm(50,0,0.125), rnorm(50,1,0.225)))
-#' data_mat[3,] <- as.numeric(c(rnorm(50,0,0.175), rnorm(50,1,0.280)))
+#' data("eu_inflation")
 #'
-#' out <- detect_cp(data = data_mat, n_iterations = 2500, n_burnin = 500,
-#'                  params = list(q = 0.25, k_0 = 0.25, nu_0 = 4, S_0 = diag(1,3,3),
-#'                                m_0 = rep(0,3), prior_delta_c = 2, prior_delta_d = 0.2,
-#'                                prior_var_phi = 0.1), kernel = "ts")
+#' params_uni <- list(a = 1, b = 1, c = 1, prior_var_phi = 0.1,
+#'                    prior_delta_c = 1, prior_delta_d = 1)
+#'
+#' out <- detect_cp(data = eu_inflation[1,], n_iterations = 1000,
+#'                  n_burnin = 100, q = 0.5, params = params_uni,
+#'                  kernel = "ts")
+#'
 #' plot(out)
-#'
-#'
 #'
 #' @rdname plot.DetectCpObj
 #' @export
@@ -331,7 +338,7 @@ plot.DetectCpObj <- function(x, y = NULL,
 
         .data_plot <- as.data.frame(cbind(vec_data))
         .data_plot$time <- rep(1:length(x$data))
-        .data_plot$obs <- as.factor(rep(1, ncol(.data_plot)))
+        .data_plot$obs <- as.factor(rep(1, nrow(.data_plot)))
 
         p1 <- ggplot2::ggplot(.data_plot) +
           ggplot2::geom_line(ggplot2::aes(x = time, y = vec_data, color = obs),  linetype = 1) +
@@ -339,7 +346,7 @@ plot.DetectCpObj <- function(x, y = NULL,
           ggplot2::labs(x = "Time",
                         y = "Value",
                         color = NULL) +
-          ggplot2::scale_colour_brewer(palette = "Set1") +
+          ggplot2::scale_color_viridis_d() +
           ggplot2::theme_minimal() +
           ggplot2::theme(legend.position="none")
 
@@ -369,7 +376,7 @@ plot.DetectCpObj <- function(x, y = NULL,
           ggplot2::labs(x = "Time",
                         y = "Value",
                         color = NULL) +
-          ggplot2::scale_colour_brewer(palette = "Set1") +
+          ggplot2::scale_color_viridis_d() +
           ggplot2::theme_minimal() +
           ggplot2::theme(legend.position="top", legend.key.width = ggplot2::unit(1, 'cm'))
 
@@ -402,7 +409,7 @@ plot.DetectCpObj <- function(x, y = NULL,
         ggplot2::labs(x = "Time",
                       y = "Proportion of Infected Individuals",
                       color = NULL) +
-        ggplot2::scale_colour_brewer(palette = "Set1") +
+        ggplot2::scale_color_viridis_d() +
         ggplot2::theme_minimal() +
         ggplot2::theme(legend.position="none")
 
@@ -426,7 +433,7 @@ plot.DetectCpObj <- function(x, y = NULL,
 
         .data_plot <- as.data.frame(cbind(vec_data))
         .data_plot$time <- 1:length(vec_data)
-        .data_plot$obs <- as.factor(rep(1, ncol(.data_plot)))
+        .data_plot$obs <- as.factor(rep(1, nrow(.data_plot)))
 
         p1 <- ggplot2::ggplot(.data_plot) +
           ggplot2::geom_line(ggplot2::aes(x = time, y = vec_data, color = obs),  linetype = 1) +
@@ -444,7 +451,7 @@ plot.DetectCpObj <- function(x, y = NULL,
 
         for(i in 1:x$n_iterations){
 
-          cp_iteration <- cumsum(table(x$orders[i,]))[-length(table(x$orders[i,]))]
+          cp_iteration <- cumsum(table(x$orders[i,]))[-length(table(x$orders[i,]))] + 1
 
           b[cp_iteration] = b[cp_iteration] + 1
 
@@ -459,7 +466,7 @@ plot.DetectCpObj <- function(x, y = NULL,
           ggplot2::scale_y_continuous(breaks = c(0,.5,1)) +
           ggplot2::ylab("Prob.") +
           ggplot2::xlab("Time") +
-          ggplot2::scale_colour_brewer(palette = "Set1") +
+          ggplot2::scale_color_viridis_d() +
           ggplot2::theme_minimal()
 
         p2 <- p2 + ggplot2::theme(legend.position="none")
@@ -489,7 +496,7 @@ plot.DetectCpObj <- function(x, y = NULL,
           ggplot2::labs(x = " ",
                         y = "Value",
                         color = NULL) +
-          ggplot2::scale_colour_brewer(palette = "Set1") +
+          ggplot2::scale_color_viridis_d() +
           ggplot2::theme_minimal() +
           ggplot2::theme(legend.position="top", legend.key.width = ggplot2::unit(1, 'cm'))
 
@@ -499,7 +506,7 @@ plot.DetectCpObj <- function(x, y = NULL,
 
         for(i in 1:x$n_iterations){
 
-          cp_iteration <- cumsum(table(x$orders[i,]))[-length(table(x$orders[i,]))]
+          cp_iteration <- cumsum(table(x$orders[i,]))[-length(table(x$orders[i,]))] + 1
 
           b[cp_iteration] = b[cp_iteration] + 1
 
@@ -545,7 +552,7 @@ plot.DetectCpObj <- function(x, y = NULL,
         ggplot2::labs(x = "Time",
                       y = "Proportion of Infected Individuals",
                       color = NULL) +
-        ggplot2::scale_colour_brewer(palette = "Set1") +
+        ggplot2::scale_color_viridis_d() +
         ggplot2::theme_minimal()
 
       p1 <- p1 + ggplot2::theme(legend.position="none")
@@ -555,7 +562,7 @@ plot.DetectCpObj <- function(x, y = NULL,
 
       for(i in 1:x$n_iterations){
 
-        cp_iteration <- cumsum(table(x$orders[i,]))[-length(table(x$orders[i,]))]
+        cp_iteration <- cumsum(table(x$orders[i,]))[-length(table(x$orders[i,]))] + 1
 
         b[cp_iteration] = b[cp_iteration] + 1
 
@@ -570,7 +577,7 @@ plot.DetectCpObj <- function(x, y = NULL,
         ggplot2::scale_y_continuous(breaks = c(0,.5,1)) +
         ggplot2::ylab("Prob.") +
         ggplot2::xlab("Time") +
-        ggplot2::scale_colour_brewer(palette = "Set1") +
+        ggplot2::scale_color_viridis_d() +
         ggplot2::theme_minimal()
 
       p2 <- p2 + ggplot2::theme(legend.position="none")

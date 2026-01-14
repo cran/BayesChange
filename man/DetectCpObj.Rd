@@ -10,49 +10,49 @@ DetectCpObj(
   n_burnin = NULL,
   orders = NULL,
   time = NULL,
+  entropy_MCMC = NULL,
+  lkl_MCMC = NULL,
   phi_MCMC = NULL,
-  phi_MCMC_01 = NULL,
   sigma_MCMC = NULL,
-  sigma_MCMC_01 = NULL,
   delta_MCMC = NULL,
   I0_MCMC = NULL,
-  I0_MCMC_01 = NULL,
   kernel_ts = NULL,
   kernel_epi = NULL,
   univariate_ts = NULL
 )
 }
 \arguments{
-\item{data}{a vector or a matrix containing the values of the time series;}
+\item{data}{A vector or matrix containing the observed time series.}
 
-\item{n_iterations}{number of iterations of the MCMC algorithm;}
+\item{n_iterations}{Total number of MCMC iterations.}
 
-\item{n_burnin}{number of MCMC iterations to exclude in the posterior estimate;}
+\item{n_burnin}{Number of burn-in iterations to discard.}
 
-\item{orders}{a matrix where each row corresponds to the output order of the corresponding iteration;}
+\item{orders}{A matrix where each row corresponds to the latent block
+assignment (order) of the time indices at each MCMC iteration.}
 
-\item{time}{computational time in seconds;}
+\item{time}{Computational time in seconds.}
 
-\item{phi_MCMC}{traceplot for \eqn{\gamma}.}
+\item{entropy_MCMC}{A \code{coda::mcmc} object containing MCMC samples of the entropy measure.}
 
-\item{phi_MCMC_01}{a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{\phi} was accepted, \eqn{0} otherwise.}
+\item{lkl_MCMC}{A \code{coda::mcmc} object containing MCMC samples of the log-likelihood.}
 
-\item{sigma_MCMC}{traceplot for \eqn{\sigma}.}
+\item{phi_MCMC}{A \code{coda::mcmc} object containing MCMC draws for \eqn{\gamma}.}
 
-\item{sigma_MCMC_01}{a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{\sigma} was accepted, \eqn{0} otherwise.}
+\item{sigma_MCMC}{A \code{coda::mcmc} object containing MCMC draws for \eqn{\sigma}.}
 
-\item{delta_MCMC}{traceplot for \eqn{\delta}.}
+\item{delta_MCMC}{A \code{coda::mcmc} object containing MCMC draws for \eqn{\delta}.}
 
-\item{I0_MCMC}{traceplot for \eqn{I_0}.}
+\item{I0_MCMC}{A \code{coda::mcmc} object containing MCMC draws for \eqn{I_0}.}
 
-\item{I0_MCMC_01}{a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{I_0} was accepted, \eqn{0} otherwise.}
+\item{kernel_ts}{Logical; TRUE if the model for time series data is used.}
 
-\item{kernel_ts}{if TRUE data are time series.}
+\item{kernel_epi}{Logical; TRUE if the epidemic diffusion model is used.}
 
-\item{kernel_epi}{if TRUE data are epidemic diffusions.}
-
-\item{univariate_ts}{TRUE/FALSE if time series is univariate or not.}
+\item{univariate_ts}{Logical; TRUE if the time series is univariate, FALSE otherwise.}
 }
 \description{
-A constructor for the \code{DetectCpObj} class. The class \code{DetectCpObj} contains...
+Constructor for the \code{DetectCpObj} class. This class stores the output
+of the Bayesian change–point detection algorithm, including MCMC traces,
+allocation orders, and computational information.
 }

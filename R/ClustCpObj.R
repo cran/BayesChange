@@ -1,22 +1,26 @@
 #' ClustCpObj class constructor
 #'
-#' @description A constructor for the \code{ClustCpObj} class. The class \code{ClustCpObj} contains...
+#' @description
+#' A constructor for the \code{ClustCpObj} class, which stores the output of
+#' the change point detection and clustering algorithms.
 #'
-#' @param data a vector or a matrix containing the values of the time series;
-#' @param n_iterations number of iterations of the MCMC algorithm;
-#' @param n_burnin number of MCMC iterations to exclude in the posterior estimate;
-#' @param clust a matrix with the clustering of each iteration.
-#' @param orders a matrix where each row corresponds to the output order of the corresponding iteration;
-#' @param time computational time in seconds;
-#' @param lkl a vector with the likelihood of the final partition
-#' @param norm_vec a vector with the estimated normalization constant.
-#' @param I0_MCMC traceplot for \eqn{I_0}.
-#' @param I0_MCMC_01 a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{I_0} was accepted, \eqn{0} otherwise.
-#' @param kernel_ts if TRUE data are time series.
-#' @param kernel_epi if TRUE data are epidemic diffusions.
-#' @param univariate_ts TRUE/FALSE if time series is univariate or not;
+#' @param data A vector or matrix containing the observed data.
+#' @param n_iterations Total number of MCMC iterations.
+#' @param n_burnin Number of burn-in iterations removed from posterior summaries.
+#' @param clust A matrix where each row contains the cluster assignments for one iteration.
+#' @param orders A multidimensional array where each slice is a matrix representing
+#'   the latent order at each iteration.
+#' @param time Total computational time (in seconds).
+#' @param norm_vec A vector containing precomputed normalization constants.
+#' @param entropy_MCMC A \code{coda::mcmc} object containing the MCMC samples of the entropy.
+#' @param lkl_MCMC A \code{coda::mcmc} object containing the log-likelihood values at each iteration.
+#' @param I0_MCMC A \code{coda::mcmc} object with the MCMC trace of the initial infection proportion \eqn{I_0}.
+#' @param kernel_ts Logical; TRUE if the kernel corresponds to time-series data.
+#' @param kernel_epi Logical; TRUE if the kernel corresponds to epidemic diffusion data.
+#' @param univariate_ts Logical; TRUE if the data represent a univariate time series,
+#'   FALSE for multivariate time series.
 #'
-#'
+#' @return An object of class \code{ClustCpObj}.
 #' @export
 #'
 ClustCpObj <- function(data = NULL,
@@ -25,10 +29,10 @@ ClustCpObj <- function(data = NULL,
                        clust = NULL,
                        orders = NULL,
                        time = NULL,
-                       lkl = NULL,
                        norm_vec = NULL,
+                       entropy_MCMC = NULL,
+                       lkl_MCMC = NULL,
                        I0_MCMC = NULL,
-                       I0_MCMC_01 = NULL,
                        kernel_ts = NULL,
                        kernel_epi = NULL,
                        univariate_ts = NULL){
@@ -39,10 +43,10 @@ ClustCpObj <- function(data = NULL,
                 clust = clust,
                 orders = orders,
                 time = time,
-                lkl = lkl,
                 norm_vec = norm_vec,
+                entropy_MCMC = entropy_MCMC,
+                lkl_MCMC = lkl_MCMC,
                 I0_MCMC = I0_MCMC,
-                I0_MCMC_01 = I0_MCMC_01,
                 kernel_ts = kernel_ts,
                 kernel_epi = kernel_epi,
                 univariate_ts = univariate_ts)
@@ -59,16 +63,15 @@ ClustCpObj <- function(data = NULL,
 #'
 #' @examples
 #'
-#' data_mat <- matrix(NA, nrow = 5, ncol = 100)
+#' data("stock_uni")
 #'
-#' data_mat[1,] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-#' data_mat[2,] <- as.numeric(c(rnorm(50,0,0.125), rnorm(50,1,0.225)))
-#' data_mat[3,] <- as.numeric(c(rnorm(50,0,0.175), rnorm(50,1,0.280)))
-#' data_mat[4,] <- as.numeric(c(rnorm(25,0,0.135), rnorm(75,1,0.225)))
-#' data_mat[5,] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
+#' params_uni <- list(a = 1,
+#'                    b = 1,
+#'                    c = 1,
+#'                    phi = 0.1)
 #'
-#' out <- clust_cp(data = data_mat, n_iterations = 5000, n_burnin = 1000,
-#'                 params = list(L = 1, B = 1000, phi = 0.5), kernel = "ts")
+#' out <- clust_cp(data = stock_uni[1:3,], n_iterations = 1000, n_burnin = 100,
+#'                 L = 1, q = 0.5, B = 500, params = params_uni, kernel = "ts")
 #'
 #' print(out)
 #'
@@ -78,13 +81,13 @@ ClustCpObj <- function(data = NULL,
 print.ClustCpObj <- function(x, ...) {
   cat("ClustCpObj object\n")
   if(x$kernel_ts){
-    if(x$univariate){
-      cat("Type: clustering univariate time series with common change points")
+    if(x$univariate_ts){
+      cat("Type: clustering univariate time series with common change points\n")
     } else {
-      cat("Type: clustering multivariate time series with common change points")
+      cat("Type: clustering multivariate time series with common change points\n")
     }
   } else if(x$kernel_epi){
-    cat("Type: clustering epidemic diffusions with common change points")
+    cat("Type: clustering epidemic diffusions with common change points\n")
   }
 }
 
@@ -97,16 +100,15 @@ print.ClustCpObj <- function(x, ...) {
 #'
 #' @examples
 #'
-#' data_mat <- matrix(NA, nrow = 5, ncol = 100)
+#' data("stock_uni")
 #'
-#' data_mat[1,] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-#' data_mat[2,] <- as.numeric(c(rnorm(50,0,0.125), rnorm(50,1,0.225)))
-#' data_mat[3,] <- as.numeric(c(rnorm(50,0,0.175), rnorm(50,1,0.280)))
-#' data_mat[4,] <- as.numeric(c(rnorm(25,0,0.135), rnorm(75,1,0.225)))
-#' data_mat[5,] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
+#' params_uni <- list(a = 1,
+#'                    b = 1,
+#'                    c = 1,
+#'                    phi = 0.1)
 #'
-#' out <- clust_cp(data = data_mat, n_iterations = 5000, n_burnin = 1000,
-#'                 params = list(L = 1, B = 1000, phi = 0.5), kernel = "ts")
+#' out <- clust_cp(data = stock_uni[1:3,], n_iterations = 1000, n_burnin = 100,
+#'                 L = 1, q = 0.5, B = 500, params = params_uni, kernel = "ts")
 #'
 #' summary(out)
 #'
@@ -117,27 +119,32 @@ summary.ClustCpObj <- function(object, ...) {
   cat("ClustCpObj object\n")
   if(object$kernel_ts){
     if(object$univariate){
-      cat("Clustering univariate time series:\n",
-          "Number of burn-in iterations:", object$n_burnin, "\n",
-          "Number of MCMC iterations:", object$n_iterations - object$n_burnin, "\n",
-          "Computational time:", round(object$time, digits = 2), "seconds\n")
+      cat("Clustering summary (univariate time series):\n",
+          "- Burn-in iterations:", object$n_burnin, "\n",
+          "- MCMC iterations:", object$n_iterations - object$n_burnin, "\n",
+          "- Average number of clusters:",
+          round(mean(apply(object$clust[(object$n_burnin + 1):object$n_iterations, ], 1, function(x) length(unique(x)))), 2), "\n",
+          "- Computational time:", round(object$time, 2), "seconds\n",
+          "\nUse plot() for a detailed visualization or posterior_estimate() to analyze the clustering results.\n")
     } else {
-      cat("Clustering ", paste0(nrow(object$data[,,1]),"-dimensional time series:\n"),
-          "Number of burn-in iterations:", object$n_burnin, "\n",
-          "Number of MCMC iterations:", object$n_iterations - object$n_burnin, "\n",
-          "Computational time:", round(object$time, digits = 2), "seconds\n")
+      cat("Clustering ", paste0(nrow(object$data[,,1]), "-dimensional time series:\n"),
+          "- Burn-in iterations:", object$n_burnin, "\n",
+          "- MCMC iterations:", object$n_iterations - object$n_burnin, "\n",
+          "- Average number of clusters:",
+          round(mean(apply(object$clust[(object$n_burnin + 1):object$n_iterations, ], 1, function(x) length(unique(x)))), 2), "\n",
+          "- Computational time:", round(object$time, 2), "seconds\n",
+          "\nUse plot() for a detailed visualization or posterior_estimate() to analyze the clustering results.\n")
     }
   } else if (object$kernel_epi){
-
     cat("Clustering epidemic diffusions:\n",
-        "Number of burn-in iterations:", object$n_burnin, "\n",
-        "Number of MCMC iterations:", object$n_iterations - object$n_burnin, "\n",
-        "Computational time:", round(object$time, digits = 2), "seconds\n")
-
+        "- Burn-in iterations:", object$n_burnin, "\n",
+        "- MCMC iterations:", object$n_iterations - object$n_burnin, "\n",
+        "- Average number of clusters:",
+        round(mean(apply(object$clust[(object$n_burnin + 1):object$n_iterations, ], 1, function(x) length(unique(x)))), 2), "\n",
+        "- Computational time:", round(object$time, 2), "seconds\n",
+        "\nUse plot() for a detailed visualization or posterior_estimate() to analyze the clustering results.\n")
   }
 }
-
-
 
 #' Estimate the change points of the data
 #'
@@ -149,10 +156,6 @@ summary.ClustCpObj <- function(object, ...) {
 #' @param nRuns number of runs in salso procedure.
 #' @param maxZealousAttempts maximum number of zealous attempts in salso procedure.
 #' @param ... parameter of the generic method.
-#'
-#' @details
-#'
-#' put details here
 #'
 #' @return
 #'
@@ -166,16 +169,15 @@ summary.ClustCpObj <- function(object, ...) {
 #'
 #' @examples
 #'
-#' data_mat <- matrix(NA, nrow = 5, ncol = 100)
+#' data("stock_uni")
 #'
-#' data_mat[1,] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-#' data_mat[2,] <- as.numeric(c(rnorm(50,0,0.125), rnorm(50,1,0.225)))
-#' data_mat[3,] <- as.numeric(c(rnorm(50,0,0.175), rnorm(50,1,0.280)))
-#' data_mat[4,] <- as.numeric(c(rnorm(25,0,0.135), rnorm(75,1,0.225)))
-#' data_mat[5,] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
+#' params_uni <- list(a = 1,
+#'                    b = 1,
+#'                    c = 1,
+#'                    phi = 0.1)
 #'
-#' out <- clust_cp(data = data_mat, n_iterations = 5000, n_burnin = 1000,
-#'                 params = list(L = 1, B = 1000, phi = 0.5), kernel = "ts")
+#' out <- clust_cp(data = stock_uni[1:3,], n_iterations = 1000, n_burnin = 100,
+#'                 L = 1, q = 0.5, B = 500, params = params_uni, kernel = "ts")
 #'
 #' posterior_estimate(out)
 #'
@@ -273,52 +275,18 @@ posterior_estimate.ClustCpObj <- function(object,
 #'
 #' @examples
 #'
-#'\donttest{
-#' ## Time series
+#' data("stock_uni")
 #'
-#' data_mat <- matrix(NA, nrow = 5, ncol = 100)
+#' params_uni <- list(a = 1,
+#'                    b = 1,
+#'                    c = 1,
+#'                    phi = 0.1)
 #'
-#' data_mat[1,] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-#' data_mat[2,] <- as.numeric(c(rnorm(50,0,0.125), rnorm(50,1,0.225)))
-#' data_mat[3,] <- as.numeric(c(rnorm(50,0,0.175), rnorm(50,1,0.280)))
-#' data_mat[4,] <- as.numeric(c(rnorm(25,0,0.135), rnorm(75,1,0.225)))
-#' data_mat[5,] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
-#'
-#' out <- clust_cp(data = data_mat, n_iterations = 5000, n_burnin = 1000,
-#'                 params = list(L = 1, B = 1000, phi = 0.5), kernel = "ts")
+#' out <- clust_cp(data = stock_uni[1:3,], n_iterations = 1000, n_burnin = 100,
+#'                 L = 1, q = 0.5, B = 500, params = params_uni, kernel = "ts")
 #'
 #' plot(out)
 #'
-#'
-#' ## Epidemic diffusions
-#'
-#' data_mat <- matrix(NA, nrow = 5, ncol = 50)
-#'
-#' betas <- list(c(rep(0.45, 25),rep(0.14,25)),
-#'               c(rep(0.55, 25),rep(0.11,25)),
-#'               c(rep(0.50, 25),rep(0.12,25)),
-#'               c(rep(0.52, 10),rep(0.15,40)),
-#'               c(rep(0.53, 10),rep(0.13,40)))
-#'
-#' inf_times <- list()
-#'
-#' for(i in 1:5){
-#'   inf_times[[i]] <- sim_epi_data(10000, 10, 50, betas[[i]], 1/8)
-#'   vec <- rep(0,50)
-#'   names(vec) <- as.character(1:50)
-#'   for(j in 1:50){
-#'     if(as.character(j) %in% names(table(floor(inf_times[[i]])))){
-#'       vec[j] = table(floor(inf_times[[i]]))[which(names(table(floor(inf_times[[i]]))) == j)]
-#'     }
-#'   }
-#'   data_mat[i,] <- vec
-#' }
-#'
-#' out <- clust_cp(data = data_mat, n_iterations = 100, n_burnin = 10,
-#'                 params = list(M = 100, L = 1, B = 100), kernel = "epi")
-#'
-#' plot(out)
-#' }
 #'
 #' @rdname plot.ClustCpObj
 #' @export
@@ -341,7 +309,7 @@ plot.ClustCpObj <- function(x, y = NULL,
 
       .data_plot <- as.data.frame(t(x$data))
       .data_plot <- tidyr::pivot_longer(.data_plot, cols = dplyr::everything(), names_to = "Observation", values_to = "Value")
-      .data_plot <- dplyr::mutate(.data_plot, Observation = as.numeric(gsub("V", "", Observation)))
+      #.data_plot <- dplyr::mutate(.data_plot, Observation = as.numeric(gsub("V", "", Observation)))
       .data_plot <- dplyr::group_by(.data_plot, Observation)
       .data_plot <- dplyr::mutate(.data_plot, Time = dplyr::row_number())
       .data_plot <-  dplyr::ungroup(.data_plot)
@@ -355,7 +323,7 @@ plot.ClustCpObj <- function(x, y = NULL,
         ggplot2::geom_line(ggplot2::aes(x = Time, y = Value, color = Observation, group = Observation, linetype = Cluster)) +
         ggplot2::xlab("Time") +
         ggplot2::ylab("Value") +
-        ggplot2::scale_colour_brewer(palette = "Set1") +
+        ggplot2::scale_color_viridis_d() +
         ggplot2::theme_minimal()
 
     } else {
@@ -363,33 +331,51 @@ plot.ClustCpObj <- function(x, y = NULL,
       est_cp = posterior_estimate(x, loss = loss, maxNClusters = maxNClusters,
                                   nRuns = nRuns, maxZealousAttempts = maxZealousAttempts)
 
-
       .data_plot <- data.frame(Value = numeric(0))
+
+      obs_names <- dimnames(x$data)[[3]]
 
       count = 0
       for (i in 1:dim(x$data)[3]) {
         mat <- x$data[,,i]
-        for(j in 1:nrow(mat)){
+
+        obs_label <- if (!is.null(obs_names)) obs_names[i] else i
+
+        for (j in 1:nrow(mat)) {
           count = count + 1
-          .data_plot <- rbind(.data_plot, data.frame(Value = as.vector(mat[j,]),
-                                                     Observation = i,
-                                                     Cluster = est_cp[i],
-                                                     Time = 1:ncol(mat),
-                                                     Count = count))
+
+          .data_plot <- rbind(
+            .data_plot,
+            data.frame(
+              Value = as.vector(mat[j, ]),
+              Observation = obs_label,
+              Cluster = est_cp[i],
+              Time = 1:ncol(mat),
+              Count = count
+            )
+          )
         }
       }
-
 
       .data_plot$Observation <- as.factor(.data_plot$Observation)
       .data_plot$Cluster <- as.factor(.data_plot$Cluster)
       .data_plot$Count <- as.factor(.data_plot$Count)
 
       ggplot2::ggplot(.data_plot) +
-        ggplot2::geom_line(ggplot2::aes(x = Time, y = Value, color = Observation, group = Count, linetype = Cluster)) +
+        ggplot2::geom_line(
+          ggplot2::aes(
+            x = Time,
+            y = Value,
+            color = Observation,
+            group = Count,
+            linetype = Cluster
+          )
+        ) +
         ggplot2::xlab("Time") +
         ggplot2::ylab("Value") +
-        ggplot2::scale_colour_brewer(palette = "Set1") +
+        ggplot2::scale_color_viridis_d() +
         ggplot2::theme_minimal()
+
 
     }
   } else if(x$kernel_epi){
@@ -407,9 +393,119 @@ plot.ClustCpObj <- function(x, y = NULL,
       ggplot2::geom_line(lwd = 0.5) +
       ggplot2::xlab("Time") +
       ggplot2::ylab("Proportion of Infected Individuals") +
-      ggplot2::scale_colour_brewer(palette = "Set1") +
+      ggplot2::scale_color_viridis_d() +
       ggplot2::theme_minimal()
 
   }
 
+}
+
+#' set generic
+#' @name posterior_estimate
+#' @keywords internal
+#' @export
+#'
+plot_psm <- function (object, ...) {
+  UseMethod("plot_psm")
+}
+
+#' Plot the Posterior Similarity Matrix (PSM) for a ClustCpObj
+#'
+#' This function computes and visualizes the posterior similarity matrix
+#' (PSM) from a \code{ClustCpObj} object.
+#' The PSM shows the posterior co-clustering probabilities of all observations.
+#'
+#' @param object an object of class \code{ClustCpObj}.
+#' @param reorder Logical; if \code{TRUE} (default), items are reordered using
+#'   hierarchical clustering to highlight clusters in the final plot
+#' @param title Character; the plot title (default: \code{"Posterior Similarity Matrix"}).
+#' @param ... parameter of the generic method.
+#'
+#' @return A \code{ggplot2} object representing the posterior similarity matrix.
+#'
+#' @importFrom rlang .data
+#'
+#' @rdname plot_psm.ClustCpObj
+#' @examples
+#' data("stock_uni")
+#'
+#' params_uni <- list(a = 1,
+#'                    b = 1,
+#'                    c = 1,
+#'                    phi = 0.1)
+#'
+#' out <- clust_cp(data = stock_uni[1:3,], n_iterations = 1000, n_burnin = 100,
+#'                 L = 1, q = 0.5, B = 500, params = params_uni, kernel = "ts")
+#' plot_psm(out)
+#' @export
+#'
+plot_psm.ClustCpObj <- function(object,
+                                reorder = TRUE,
+                                title = "Posterior Similarity Matrix", ...) {
+  if (!inherits(object, "ClustCpObj")) {
+    stop("object must be of class 'ClustCpObj'")
+  }
+
+  # Extract MCMC cluster samples
+  if (is.null(object$clust)) {
+    stop("The ClustCpObj does not contain MCMC cluster samples (clust).")
+  }
+
+  mcmc_chain <- object$clust[(object$n_burnin + 1):object$n_iterations,]
+  n_items <- ncol(mcmc_chain)
+
+  # Compute Posterior Similarity Matrix using SALSO
+  psm <- salso::psm(mcmc_chain)
+
+  obs_labels <- 1:n_items
+
+  # Reorder items if requested
+  if (reorder) {
+    hc <- stats::hclust(stats::dist(1 - psm))
+    order_idx <- hc$order
+    psm <- psm[order_idx, order_idx]
+    obs_labels <- obs_labels[order_idx]
+  }
+
+  psm_melt <- reshape2::melt(psm[1:nrow(psm), , drop = FALSE])
+  colnames(psm_melt) <- c("Obs1", "Obs2", "Similarity")
+
+  # Plot
+  plot_heat <- ggplot2::ggplot(psm_melt) +
+    ggplot2::geom_tile(
+      ggplot2::aes(x = .data$Obs1, y = .data$Obs2, fill = .data$Similarity),
+      na.rm = TRUE,
+      linewidth = 0
+    ) +
+    ggplot2::scale_fill_gradient(low = "transparent", high = "#470D60FF") +
+    ggplot2::labs(
+      title = title,
+      fill = "Co-clustering\nProbability",
+      x = " ",
+      y = " "
+    ) +
+    ggplot2::theme_linedraw() +
+    ggplot2::coord_cartesian(
+      xlim = c(0, ncol(psm) + 1),
+      ylim = c(0, ncol(psm) + 1),
+      expand = FALSE
+    ) +
+    ggplot2::scale_x_continuous(
+      breaks = seq(1, ncol(psm), by = 1),
+      labels = obs_labels
+    ) +
+    ggplot2::scale_y_continuous(
+      breaks = seq(1, ncol(psm), by = 1),
+      labels = obs_labels
+    ) +
+    ggplot2::theme(
+      legend.position = "right",
+      plot.title = ggplot2::element_text(hjust = 0.5),
+      axis.text.x = ggplot2::element_text(size = 8),
+      axis.text.y = ggplot2::element_text(size = 8),
+      panel.grid.major = ggplot2::element_blank(),
+      panel.grid.minor = ggplot2::element_line(linewidth = 0.1)
+    )
+
+  return(plot_heat)
 }

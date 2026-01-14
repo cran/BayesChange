@@ -45,19 +45,19 @@
 #' @return A \code{ClustCpObj} class object containing
 #'
 #' \itemize{
-#'   \item \code{$data} vector or matrix with the data.
-#'   \item \code{$n_iterations} number of iterations.
-#'   \item \code{$n_burnin} number of burn-in iterations.
-#'   \item \code{$clust} a matrix where each row corresponds to the output cluster of the corresponding iteration.
-#'   \item \code{$orders} a multidimensional array where each slice is a matrix and represent an iteration. The row of each matrix correspond the order associated to the corresponding cluster.
-#'   \item \code{$time} computational time.
-#'   \item \code{$lkl} a matrix where each row is the likelihood of each observation computed at the corresponding iteration.
-#'   \item \code{$norm_vec} a vector containing the normalization constant computed at the beginning of the algorithm.
-#'   \item \code{I0_MCMC} traceplot for \eqn{I_0}.
-#'   \item \code{I0_MCMC_01} a \eqn{0/1} vector, the \eqn{n}-th element is equal to \eqn{1} if the proposed \eqn{I_0} was accepted, \eqn{0} otherwise.
-#'   \item \code{$kernel_ts} if TRUE data are time series.
-#'   \item \code{$kernel_epi} if TRUE data are epidemic diffusion.
-#'   \item \code{$univariate_ts} TRUE if data is an univariate time series, FALSE if it is a multivariate time series.
+#'   \item \code{$data} Vector or matrix containing the data.
+#'   \item \code{$n_iterations} Total number of MCMC iterations.
+#'   \item \code{$n_burnin} Number of burn-in iterations.
+#'   \item \code{$clust} A matrix where each row corresponds to the cluster assignment from each iteration.
+#'   \item \code{$orders} A multidimensional array where each slice is a matrix representing the latent order at each iteration.
+#'   \item \code{$time} Total computational time (in seconds).
+#'   \item \code{$entropy_MCMC} A \code{coda::mcmc} object containing the MCMC samples of the entropy.
+#'   \item \code{$lkl} A \code{coda::mcmc} object containing the log-likelihood evaluated at each iteration.
+#'   \item \code{$norm_vec} A vector containing the normalization constants computed at the beginning of the algorithm.
+#'   \item \code{$I0_MCMC} A \code{coda::mcmc} object containing the MCMC trace of the initial infection proportion \eqn{I_0}.
+#'   \item \code{$kernel_ts} TRUE if the kernel used corresponds to time series data.
+#'   \item \code{$kernel_epi} TRUE if the kernel used corresponds to epidemic diffusion data.
+#'   \item \code{$univariate_ts} TRUE if the data represent a univariate time series, FALSE if multivariate.
 #' }
 #'
 #'
@@ -66,89 +66,54 @@
 #'\donttest{
 #' ## Univariate time series
 #'
-#' data_mat <- matrix(NA, nrow = 5, ncol = 100)
+#' data("stock_uni")
 #'
-#' data_mat[1,] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-#' data_mat[2,] <- as.numeric(c(rnorm(50,0,0.125), rnorm(50,1,0.225)))
-#' data_mat[3,] <- as.numeric(c(rnorm(50,0,0.175), rnorm(50,1,0.280)))
-#' data_mat[4,] <- as.numeric(c(rnorm(25,0,0.135), rnorm(75,1,0.225)))
-#' data_mat[5,] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
+#' params_uni <- list(a = 1,
+#'                    b = 1,
+#'                    c = 1,
+#'                    phi = 0.1)
 #'
-#' out <- clust_cp(data = data_mat, n_iterations = 5000, n_burnin = 1000,
-#'                  L = 1, params = list(phi = 0.5), B = 1000, kernel = "ts")
+#' out <- clust_cp(data = stock_uni[1:5,], n_iterations = 2000, n_burnin = 500,
+#'                 L = 1, q = 0.5, B = 1000, params = params_uni, kernel = "ts")
 #'
 #' print(out)
 #'
 #' ## Multivariate time series
 #'
+#' data("stock_multi")
 #'
-#' data_array <- array(data = NA, dim = c(3,100,5))
+#' params_multi <- list(m_0 = rep(0,2),
+#'                      k_0 = 1,
+#'                      nu_0 = 10,
+#'                      S_0 = diag(1,2,2),
+#'                      phi = 0.1)
 #'
-#' data_array[1,,1] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-#' data_array[2,,1] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-#' data_array[3,,1] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-#'
-#' data_array[1,,2] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-#' data_array[2,,2] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-#' data_array[3,,2] <- as.numeric(c(rnorm(50,0,0.100), rnorm(50,1,0.250)))
-#'
-#' data_array[1,,3] <- as.numeric(c(rnorm(50,0,0.175), rnorm(50,1,0.280)))
-#' data_array[2,,3] <- as.numeric(c(rnorm(50,0,0.175), rnorm(50,1,0.280)))
-#' data_array[3,,3] <- as.numeric(c(rnorm(50,0,0.175), rnorm(50,1,0.280)))
-#'
-#' data_array[1,,4] <- as.numeric(c(rnorm(25,0,0.135), rnorm(75,1,0.225)))
-#' data_array[2,,4] <- as.numeric(c(rnorm(25,0,0.135), rnorm(75,1,0.225)))
-#' data_array[3,,4] <- as.numeric(c(rnorm(25,0,0.135), rnorm(75,1,0.225)))
-#'
-#' data_array[1,,5] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
-#' data_array[2,,5] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
-#' data_array[3,,5] <- as.numeric(c(rnorm(25,0,0.155), rnorm(75,1,0.280)))
-#'
-#' out <- clust_cp(data = data_array, n_iterations = 3000, n_burnin = 1000,
-#'                 params = list(phi = 0.5, k_0 = 0.25,
-#'                               nu_0 = 5, S_0 = diag(0.1,3,3),
-#'                               m_0 = rep(0,3)), B = 1000,  kernel = "ts")
+#' out <- clust_cp(data = stock_multi[,,1:5], n_iterations = 2000, n_burnin = 500,
+#'                 L = 1, B = 1000, params = params_multi, kernel = "ts")
 #'
 #' print(out)
 #'
-#' ## Epidemiological data
+#' ## Epidemic diffusions
 #'
+#' data("epi_synthetic_multi")
 #'
+#' params_epi <- list(M = 100, xi = 1/8,
+#'                    alpha_SM = 1,
+#'                    a0 = 4,
+#'                    b0 = 10,
+#'                    I0_var = 0.1,
+#'                    avg_blk = 2)
 #'
-#' data_mat <- matrix(NA, nrow = 5, ncol = 50)
-#'
-#' betas <- list(c(rep(0.45, 25),rep(0.14,25)),
-#'               c(rep(0.55, 25),rep(0.11,25)),
-#'               c(rep(0.50, 25),rep(0.12,25)),
-#'               c(rep(0.52, 10),rep(0.15,40)),
-#'               c(rep(0.53, 10),rep(0.13,40)))
-#'
-#' inf_times <- list()
-#'
-#' for(i in 1:5){
-#'
-#'   inf_times[[i]] <- sim_epi_data(10000, 10, 50, betas[[i]], 1/8)
-#'
-#'   vec <- rep(0,50)
-#'   names(vec) <- as.character(1:50)
-#'
-#'   for(j in 1:50){
-#'     if(as.character(j) %in% names(table(floor(inf_times[[i]])))){
-#'       vec[j] = table(floor(inf_times[[i]]))[which(names(table(floor(inf_times[[i]]))) == j)]
-#'     }
-#'   }
-#'   data_mat[i,] <- vec
-#' }
-#'
-#' out <- clust_cp(data = data_mat, n_iterations = 100, n_burnin = 10,
-#'                 params = list(M = 100, xi = 1/8), B = 1000, kernel = "epi")
+#' out <- clust_cp(epi_synthetic_multi, n_iterations = 2000, n_burnin = 500,
+#'                 L = 1, B = 1000, params = params_epi, kernel = "epi")
 #'
 #' print(out)
+#'
 #' }
 #'
 #' @references
 #'
-#' Corradin, R., Danese, L., KhudaBukhsh, W.R. et al. \emph{Model-based clustering of time-dependent observations with common structural changes}. Stat Comput 36, 7 (2026). https://doi.org/10.1007/s11222-025-10756-x
+#' Corradin, R., Danese, L., KhudaBukhsh, W. R., & Ongaro, A. (2026). Model-based clustering of time-dependent observations with common structural changes. \emph{Statistics and Computing}. \doi{10.1007/s11222-025-10756-x}
 #'
 clust_cp <- function(data,
                      n_iterations,
@@ -181,7 +146,7 @@ clust_cp <- function(data,
       if((!is.null(params$a)) && (params$a <= 0)) stop("params$a must be positive")
       if((!is.null(params$b)) && (params$b <= 0)) stop("params$b must be positive")
       if((!is.null(params$c)) && (params$c <= 0)) stop("params$c must be positive")
-      if((!is.null(params$params) && !is.list(params))) stop("params must be a list")
+      if(!is.null(params) && !is.list(params)) stop("params must be a list")
 
 
       data_input = data
@@ -209,7 +174,9 @@ clust_cp <- function(data,
                           alpha_SM = alpha_SM_input,
                           print_progress = print_progress_input, user_seed = user_seed_input)
 
-      # save output
+      # create coda objects
+      entropy_MCMC <- coda::mcmc(out$entropy)
+      lkl_MCMC <- coda::mcmc(out$lkl)
 
       result <- ClustCpObj(data = data_input,
                            n_iterations = n_iterations_input,
@@ -217,8 +184,9 @@ clust_cp <- function(data,
                            clust = out$clust,
                            orders = out$orders,
                            time = out$time,
-                           lkl = out$lkl,
                            norm_vec = out$norm_vec,
+                           entropy_MCMC = entropy_MCMC,
+                           lkl_MCMC = lkl_MCMC,
                            kernel_ts = TRUE,
                            kernel_epi = FALSE,
                            univariate_ts = TRUE)
@@ -245,7 +213,7 @@ clust_cp <- function(data,
       # substitute missing parameters with default
       if(is.null(params$m_0)){m_0_input = rep(0, nrow(data))} else{m_0_input = params$m_0}
       k_0_input = ifelse(is.null(params$k_0), 0.5, params$k_0)
-      phi_input = ifelse(is.null(params$phi), 1, params$phi)
+      phi_input = ifelse(is.null(params$phi), 0.1, params$phi)
       if(is.null(params$S_0)){S_0_input = diag(0.1, nrow(data), nrow(data))} else{S_0_input = params$S_0}
       nu_0_input = ifelse(is.null(params$nu_0), nrow(data)+1, params$nu_0)
       #
@@ -258,14 +226,19 @@ clust_cp <- function(data,
                             print_progress = print_progress_input,
                             user_seed = user_seed_input)
 
+      # create coda objects
+      entropy_MCMC <- coda::mcmc(out$entropy)
+      lkl_MCMC <- coda::mcmc(out$lkl)
+
       result <- ClustCpObj(data = data_input,
                            n_iterations = n_iterations_input,
                            n_burnin = n_burnin_input,
                            clust = out$clust,
                            orders = out$orders,
                            time = out$time,
-                           lkl = out$lkl,
                            norm_vec = out$norm_vec,
+                           entropy_MCMC = entropy_MCMC,
+                           lkl_MCMC = lkl_MCMC,
                            kernel_ts = TRUE,
                            kernel_epi = FALSE,
                            univariate_ts = FALSE)
@@ -311,16 +284,21 @@ clust_cp <- function(data,
                         avg_blk = avg_blk_input, print_progress = print_progress_input,
                         user_seed = user_seed_input)
 
+    # create coda objects
+    entropy_MCMC <- coda::mcmc(out$entropy)
+    I0_MCMC <- coda::mcmc(out$I0_MCMC)
+    lkl_MCMC <- coda::mcmc(out$llik)
+
     result <- ClustCpObj(data = data_input,
                          n_iterations = n_iterations_input,
                          n_burnin = n_burnin_input,
                          clust = out$clust,
                          orders = out$orders,
                          time = out$time,
-                         lkl = out$lkl,
                          norm_vec = out$norm_vec,
-                         I0_MCMC = out$I0_MCMC,
-                         I0_MCMC_01 = out$I0_MCMC_01,
+                         entropy_MCMC = entropy_MCMC,
+                         lkl_MCMC = lkl_MCMC,
+                         I0_MCMC = I0_MCMC,
                          kernel_ts = FALSE,
                          kernel_epi = TRUE,
                          univariate_ts = TRUE)
@@ -328,6 +306,5 @@ clust_cp <- function(data,
   }
 
   return(result)
-
 
 }
